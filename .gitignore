@@ -329,3 +329,5 @@ passfinder/media/
 .pytest_cache/
 
 .ipython/
+.env
+.idea

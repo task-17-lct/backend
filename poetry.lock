@@ -812,6 +812,17 @@ files = [
 ]
 
 [[package]]
+name = "django-location-field"
+version = "2.7.0"
+description = "Location field for Django"
+category = "main"
+optional = false
+python-versions = "*"
+files = [
+    {file = "django_location_field-2.7.0-py2.py3-none-any.whl", hash = "sha256:25745b3f409c0c7a1dfb5773f4f7505acbe7d0eaba93c2b9ce24ef368b71a24c"},
+]
+
+[[package]]
 name = "django-model-utils"
 version = "4.3.1"
 description = "Django model mixins and utilities"
@@ -825,6 +836,21 @@ files = [
 
 [package.dependencies]
 Django = ">=3.2"
+
+[[package]]
+name = "django-polymorphic"
+version = "3.1.0"
+description = "Seamless polymorphic inheritance for Django models"
+category = "main"
+optional = false
+python-versions = "*"
+files = [
+    {file = "django-polymorphic-3.1.0.tar.gz", hash = "sha256:d6955b5308bf6e41dcb22ba7c96f00b51dfa497a8a5ab1e9c06c7951bf417bf8"},
+    {file = "django_polymorphic-3.1.0-py3-none-any.whl", hash = "sha256:08bc4f4f4a773a19b2deced5a56deddd1ef56ebd15207bf4052e2901c25ef57e"},
+]
+
+[package.dependencies]
+Django = ">=2.1"
 
 [[package]]
 name = "django-redis"
@@ -2780,4 +2806,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.11"
-content-hash = "bfdadc8edad07f35f7f618b5cf8107885ead0db343fc3116d90198f803414c16"
+content-hash = "f28dac962f7703c39a58bd0f7640a1cc37af3dccd44f124e57e71d19d85278c0"
