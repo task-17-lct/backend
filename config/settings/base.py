@@ -70,6 +70,8 @@ THIRD_PARTY_APPS = [
     "rest_framework.authtoken",
     "corsheaders",
     "drf_spectacular",
+    "location_field",
+    "polymorphic",
 ]
 
 LOCAL_APPS = [
@@ -334,4 +336,9 @@ SPECTACULAR_SETTINGS = {
         {"url": "http://127.0.0.1:8000", "description": "Local Development server"},
         {"url": "https://akarpov.ru", "description": "Production server"},
     ],
+}
+
+LOCATION_FIELD = {
+    "map.provider": "openstreetmap",
+    "search.provider": "nominatim",
 }
