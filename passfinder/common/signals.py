@@ -1,16 +1,12 @@
 import os
 
 from passfinder.common.tasks import crop_model_image
-{ % - if cookiecutter.use_celery != "y" %}
-from passfinder.utils.files import crop_image
-{ % - endif %}
 
 
 def create_cropped_model_image(sender, instance, created, **kwargs):
     model = sender
     if created:
         if instance.image:
-            { % - if cookiecutter.use_celery == "y" %}
             crop_model_image.apply_async(
                 kwargs={
                     "pk": instance.pk,
@@ -19,14 +15,7 @@ def create_cropped_model_image(sender, instance, created, **kwargs):
                 },
                 countdown=2,
             )
-            { % - else - %}
-            instance.image_cropped.save(
-                instance.image.path.split(".")[0].split("/")[-1] + ".png",
-                File(crop_image(instance.image.path, length=250)),
-                save=False,
-            )
             instance.save(update_fields=["image_cropped"])
-            { % - endif %}
 
 
 def update_cropped_model_image(sender, instance, **kwargs):
@@ -41,7 +30,6 @@ def update_cropped_model_image(sender, instance, **kwargs):
             # run task to create new cropped image
             if kwargs["update_fields"] != frozenset({"image_cropped"}) and instance:
                 if instance.image:
-                    { % - if cookiecutter.use_celery == "y" %}
                     crop_model_image.apply_async(
                         kwargs={
                             "pk": instance.pk,
@@ -50,14 +38,6 @@ def update_cropped_model_image(sender, instance, **kwargs):
                         },
                         countdown=2,
                     )
-                    { % - else - %}
-                    instance.image_cropped.save(
-                        instance.image.path.split(".")[0].split("/")[-1] + ".png",
-                        File(crop_image(instance.image.path, length=250)),
-                        save=False,
-                    )
-                    instance.save(update_fields=["image_cropped"])
-                    { % - endif %}
                 else:
                     instance.image_cropped = None
 
