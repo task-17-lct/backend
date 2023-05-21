@@ -139,21 +139,6 @@ class HotelPhone(models.Model):
     number = models.CharField(max_length=18)
 
 
-class Excursion(BasePoint):
-    duration_hours = models.IntegerField()
-    price = models.IntegerField()
-    minGroupCount = models.CharField(max_length=250)
-    program = models.TextField()
-
-
-class ExcursionRoute(models.Model):
-    excursion = models.ForeignKey(
-        "Excursion", related_name="routes", on_delete=models.CASCADE
-    )
-    point = models.ForeignKey("Event", related_name="routes", on_delete=models.CASCADE)
-    active = models.BooleanField(default=True)
-
-
 class Restaurant(BasePoint):
     address = models.CharField(max_length=250)
     bill = models.IntegerField(null=True)
