@@ -155,8 +155,9 @@ class ExcursionRoute(models.Model):
 
 
 class Restaurant(BasePoint):
-    bill = models.IntegerField()
-    avg_time_visit = models.IntegerField()
-    can_reserve = models.BooleanField()
+    address = models.CharField(max_length=250)
+    bill = models.IntegerField(null=True)
+    can_reserve = models.BooleanField(default=True)
+    avg_time_visit = models.IntegerField(null=True)
     working_time = models.JSONField(null=True)
-    phone = models.CharField(max_length=18)
+    phones = ArrayField(models.CharField(max_length=18), null=True)
