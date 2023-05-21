@@ -1,6 +1,5 @@
 from django.contrib.postgres.fields import ArrayField
 from django.db import models
-from location_field.models.plain import PlainLocationField
 from polymorphic.models import PolymorphicModel
 from passfinder.utils.choices import count_max_length
 
@@ -38,7 +37,12 @@ class City(OIDModel):
     region = models.ForeignKey(
         "Region", related_name="cities", null=True, on_delete=models.SET_NULL
     )
-    location = PlainLocationField(zoom=6)
+    lon = models.FloatField(default=0, db_index=True)
+    lat = models.FloatField(default=0, db_index=True)
+
+    @property
+    def location(self):
+        return [self.lon, self.lat]
 
     def __str__(self):
         return self.title
@@ -55,10 +59,15 @@ class Place(OIDModel):
     )
     title = models.CharField(max_length=250)
     description = models.TextField()
-    location = PlainLocationField(zoom=6)
+    lon = models.FloatField(default=0, db_index=True)
+    lat = models.FloatField(default=0, db_index=True)
     sites = ArrayField(models.CharField(max_length=250), null=True)
     phones = ArrayField(models.CharField(max_length=250), null=True)
     working_time = models.JSONField(null=True)
+
+    @property
+    def location(self):
+        return [self.lon, self.lat]
 
 
 class Tag(OIDModel):
@@ -82,9 +91,19 @@ class BasePoint(OIDModel, PolymorphicModel):
         "Place", related_name="points", null=True, on_delete=models.SET_NULL
     )
     sort = models.IntegerField(default=0)
-    location = PlainLocationField(zoom=6)
+    lon = models.FloatField(default=0, db_index=True)
+    lat = models.FloatField(default=0, db_index=True)
     can_buy = models.BooleanField(default=True)
     priority = models.BooleanField(default=False)
+
+    @property
+    def location(self):
+        return [self.lon, self.lat]
+
+    @property
+    def icon(self):
+        # TODO: change to icon/first image
+        return "https://akarpov.ru/media/uploads/files/qMO4dDfIXP.webp"
 
     def __str__(self):
         return self.title

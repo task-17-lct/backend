@@ -11,7 +11,7 @@ SECRET_KEY = env(
     default="dh0qndI7XExEDZIdMDh2VPHbW9VNq0jsjsI2ImR9EyDQfNMYudHUaJswMggfhotG",
 )
 # https://docs.djangoproject.com/en/dev/ref/settings/#allowed-hosts
-ALLOWED_HOSTS = ["localhost", "0.0.0.0", "127.0.0.1"]
+ALLOWED_HOSTS = ["localhost", "0.0.0.0", "127.0.0.1", "dev2.akarpov.ru"]
 CORS_ORIGIN_ALLOW_ALL = True
 
 # CACHES
