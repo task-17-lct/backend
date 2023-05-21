@@ -7,7 +7,7 @@ class UserPreferences(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
 
     preffered_plays = models.ManyToManyField(Event, related_name='preffered_user_play')
-    unpreffered_lays = models.ManyToManyField(Event, related_name='unpreffered_users_play')
+    unpreffered_plays = models.ManyToManyField(Event, related_name='unpreffered_users_play')
 
     preffered_movies = models.ManyToManyField(Event, related_name='preffered_user_movie')
     unpreffered_movies = models.ManyToManyField(Event, related_name='unpreffered_user_movie')
