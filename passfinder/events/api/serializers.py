@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from passfinder.events.models import Hotel, HotelPhone, City
+from passfinder.events.models import Hotel, HotelPhone, City, Event
 
 
 class HotelPhoneSerializer(serializers.ModelSerializer):
@@ -29,3 +29,9 @@ class MuseumSerializer(serializers.ModelSerializer):
     class Meta:
         model = Hotel
         exclude = "oid"
+
+
+class EventSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Event
+        fields = ('type', 'title', 'description', 'city', 'oid')
