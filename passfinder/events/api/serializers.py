@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from passfinder.events.models import Hotel, HotelPhone, City, Event
+from passfinder.events.models import Hotel, HotelPhone, City, Event, BasePoint
 
 
 class HotelPhoneSerializer(serializers.ModelSerializer):
@@ -34,4 +34,14 @@ class MuseumSerializer(serializers.ModelSerializer):
 class EventSerializer(serializers.ModelSerializer):
     class Meta:
         model = Event
-        fields = ('type', 'title', 'description', 'city', 'oid')
+        fields = ("type", "title", "description", "city", "oid")
+
+
+class PointSerializer(serializers.ModelSerializer):
+    # location = serializers.ListSerializer(
+    #     child=serializers.FloatField(), source="bare_location", max_length=2
+    # )
+
+    class Meta:
+        model = BasePoint
+        fields = ["title", "description", "location", "icon"]

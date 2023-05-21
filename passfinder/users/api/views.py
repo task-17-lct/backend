@@ -1,11 +1,12 @@
 from django.contrib.auth import get_user_model
-from rest_framework import status
+from drf_spectacular.utils import extend_schema
+from rest_framework import status, generics, permissions
 from rest_framework.decorators import action
 from rest_framework.mixins import ListModelMixin, RetrieveModelMixin, UpdateModelMixin
 from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet
 
-from .serializers import UserSerializer
+from .serializers import UserSerializer, UserRegisterSerializer
 
 User = get_user_model()
 
@@ -23,3 +24,16 @@ class UserViewSet(RetrieveModelMixin, ListModelMixin, UpdateModelMixin, GenericV
     def me(self, request):
         serializer = UserSerializer(request.user, context={"request": request})
         return Response(status=status.HTTP_200_OK, data=serializer.data)
+
+
+class RegisterApiView(generics.CreateAPIView):
+    """Creates new user and sends verification email"""
+
+    serializer_class = UserRegisterSerializer
+    permission_classes = [permissions.AllowAny]
+
+    @extend_schema(
+        operation_id="auth_user_register",
+    )
+    def post(self, request, *args, **kwargs):
+        return self.create(request, *args, **kwargs)
