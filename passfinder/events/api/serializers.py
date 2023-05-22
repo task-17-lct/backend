@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from passfinder.events.models import Hotel, HotelPhone, City, Event, BasePoint
+from passfinder.events.models import Hotel, HotelPhone, City, Event, BasePoint, Region
 
 
 class HotelPhoneSerializer(serializers.ModelSerializer):
@@ -47,3 +47,9 @@ class RouteSerializer(serializers.Serializer):
     name = serializers.CharField()
     description = serializers.CharField()
     points = serializers.ListSerializer(child=PointSerializer())
+
+
+class RegionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Region
+        fields = ["oid", "title", "description_short"]
