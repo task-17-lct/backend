@@ -1,16 +1,18 @@
 from annoy import AnnoyIndex
 from .mapping.mapping import *
 from .models.models import *
-from passfinder.events.models import Event
-from passfinder.recomendations.models import UserPreferences
+from passfinder.events.models import Event, Region
+from passfinder.recomendations.models import UserPreferences, NearestEvent
 from random import choice
 from collections import Counter
+from passfinder.users.models import User
+from collections.abc import Iterable
 
 
 def get_nearest_(instance_model, model_type, mapping, nearest_n, ml_model):
     how_many = len(Event.objects.filter(type=model_type))
 
-    index = mapping.index(instance_model.oid)
+    index = mapping[instance_model.oid]
     nearest = ml_model.get_nns_by_item(index, len(mapping))
 
     res = []
@@ -182,3 +184,89 @@ def get_personal_movies_recommendation(user):
     prefer = pref.preffered_movies.all()
     unprefer = pref.unpreffered_movies.all()
     return get_personal_recommendation(prefer, unprefer)
+
+
+
+def dist_func(event1: Event, event2: Event):
+    return (event1.lat - event2.lat) ** 2 + (event2.lon - event2.lon) ** 2
+
+
+def generate_nearest():
+    NearestEvent.objects.all().delete()
+    all_events = list(Event.objects.all())
+    for i, event in enumerate(Event.objects.all()):
+        event_all_events = list(sorted(all_events.copy(), key=lambda x: dist_func(event, x)))
+        nearest = NearestEvent.objects.create(event=event)
+        nearest.nearest.set(event_all_events[0:100])
+        nearest.save()
+        if i % 100 == 0:
+            print(i)
+
+
+def calculate_mean_metric(favorite_events: Iterable[Event], target_event: Event, model: AnnoyIndex, rev_list: Iterable[str]):
+    if not len(favorite_events):
+        return 100000
+    
+    dists = []
+    target_event_idx = rev_list[target_event.oid]
+    for fav in favorite_events:
+        dists.append(model.get_distance(rev_list[fav.oid], target_event_idx))
+    return sum(dists) / len(dists)
+
+
+def calculate_favorite_metric(event: Event, user: User):
+    pref = UserPreferences.objects.get(user=user)
+    if event.type == 'plays':
+        preferred = pref.preffered_plays.all()
+        return calculate_mean_metric(
+            preferred,
+            event,
+            plays_model,
+            plays_mapping
+        )
+    if event.type == 'concert':
+        preferred = pref.preferred_concerts.all()
+        return calculate_mean_metric(
+            preferred,
+            event,
+            concert_model,
+            concert_mapping
+        )
+    if event.type == 'movie':
+        preferred = pref.preffered_movies.all()
+        return calculate_mean_metric(
+            preferred,
+            event,
+            cinema_model,
+            cinema_mapping
+        )
+    return 1000000
+
+
+def get_nearest_favorite(events: Iterable[Event], user: User, exclude_events: Iterable[Event]=[]):
+    result = events[0]
+    result_min = calculate_favorite_metric(events[0], user)
+    for event in events:
+        if event in exclude_events: continue
+        local_min_metric = calculate_favorite_metric(event, user)
+        if local_min_metric < result_min:
+            result_min = local_min_metric
+            result = event
+
+    return result
+
+
+def generate_path(region: Region, user: User):
+    region_events = Event.objects.filter(region=region)
+
+    start_point = get_nearest_favorite(region_events, user, [])
+
+    candidates = NearestEvent.objects.get(event=start_point).nearest.all()
+
+    points = [start_point]
+
+    while len(points) < 5:
+        candidates = NearestEvent.objects.get(event=points[-1]).nearest.all()
+        points.append(get_nearest_favorite(candidates, user, points))
+    
+    return points
