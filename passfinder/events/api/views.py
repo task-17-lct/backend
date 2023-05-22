@@ -1,10 +1,14 @@
 from django_filters import DateFilter
 from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework.generics import GenericAPIView
+from rest_framework.generics import GenericAPIView, ListAPIView
 from rest_framework.response import Response
 
-from passfinder.events.api.serializers import PointSerializer, RouteSerializer
-from passfinder.events.models import BasePoint
+from passfinder.events.api.serializers import (
+    PointSerializer,
+    RouteSerializer,
+    RegionSerializer,
+)
+from passfinder.events.models import BasePoint, Region
 
 
 class BuildRouteApiView(GenericAPIView):
@@ -25,3 +29,8 @@ class BuildRouteApiView(GenericAPIView):
                 }
             )
         return Response(data=routes)
+
+
+class ListRegionApiView(ListAPIView):
+    serializer_class = RegionSerializer
+    queryset = Region.objects.all()
