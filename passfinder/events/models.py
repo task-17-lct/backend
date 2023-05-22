@@ -1,5 +1,8 @@
 from django.contrib.postgres.fields import ArrayField
 from django.db import models
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import extend_schema_field
+from rest_framework.serializers import ListSerializer, FloatField
 from polymorphic.models import PolymorphicModel
 from passfinder.utils.choices import count_max_length
 
@@ -42,7 +45,7 @@ class City(OIDModel):
 
     @property
     def location(self):
-        return [self.lon, self.lat]
+        return [self.lat, self.lon]
 
     def __str__(self):
         return self.title
@@ -67,7 +70,7 @@ class Place(OIDModel):
 
     @property
     def location(self):
-        return [self.lon, self.lat]
+        return [self.lat, self.lon]
 
 
 class Tag(OIDModel):
@@ -91,16 +94,20 @@ class BasePoint(OIDModel, PolymorphicModel):
         "Place", related_name="points", null=True, on_delete=models.SET_NULL
     )
     sort = models.IntegerField(default=0)
-    lon = models.FloatField(default=0, db_index=True)
     lat = models.FloatField(default=0, db_index=True)
+    lon = models.FloatField(default=0, db_index=True)
     can_buy = models.BooleanField(default=True)
     priority = models.BooleanField(default=False)
 
     @property
+    @extend_schema_field(
+        field=ListSerializer(child=FloatField(), min_length=2, max_length=2)
+    )
     def location(self):
-        return [self.lon, self.lat]
+        return [self.lat, self.lon]
 
     @property
+    @extend_schema_field(field=OpenApiTypes.URI)
     def icon(self):
         # TODO: change to icon/first image
         return "https://akarpov.ru/media/uploads/files/qMO4dDfIXP.webp"
