@@ -38,10 +38,12 @@ class EventSerializer(serializers.ModelSerializer):
 
 
 class PointSerializer(serializers.ModelSerializer):
-    # location = serializers.ListSerializer(
-    #     child=serializers.FloatField(), source="bare_location", max_length=2
-    # )
-
     class Meta:
         model = BasePoint
         fields = ["title", "description", "location", "icon"]
+
+
+class RouteSerializer(serializers.Serializer):
+    name = serializers.CharField()
+    description = serializers.CharField()
+    points = serializers.ListSerializer(child=PointSerializer())

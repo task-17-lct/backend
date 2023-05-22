@@ -51,6 +51,8 @@ django-polymorphic = "^3.1.0"
 annoy = "^1.17.2"
 django-filter = "^23.2"
 djangorestframework-simplejwt = "^5.2.2"
+beautifulsoup4 = "^4.12.2"
+django-clickhouse = "^1.2.1"
 
 
 [build-system]

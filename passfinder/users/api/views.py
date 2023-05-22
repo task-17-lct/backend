@@ -6,7 +6,11 @@ from rest_framework.mixins import ListModelMixin, RetrieveModelMixin, UpdateMode
 from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet
 
-from .serializers import UserSerializer, UserRegisterSerializer
+from .serializers import (
+    UserSerializer,
+    UserRegisterSerializer,
+    UserPreferenceSerializer,
+)
 
 User = get_user_model()
 
@@ -37,3 +41,7 @@ class RegisterApiView(generics.CreateAPIView):
     )
     def post(self, request, *args, **kwargs):
         return self.create(request, *args, **kwargs)
+
+
+class CreateUserPreferenceApiView(generics.CreateAPIView):
+    serializer_class = UserPreferenceSerializer
