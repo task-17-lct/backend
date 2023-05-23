@@ -175,3 +175,35 @@ class Restaurant(BasePoint):
     avg_time_visit = models.IntegerField(null=True)
     working_time = models.JSONField(null=True)
     phones = ArrayField(models.CharField(max_length=18), null=True)
+
+
+class UserRoute(models.Model):
+    user = models.ForeignKey(
+        "users.User", related_name="routes", on_delete=models.CASCADE
+    )
+    created = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.user}'s route"
+
+
+class BaseUserRoutePoint(PolymorphicModel):
+    route = models.ForeignKey(
+        "UserRoute", related_name="points", on_delete=models.CASCADE
+    )
+
+
+class UserRoutePoint(BaseUserRoutePoint):
+    type = "point"
+    point = models.ForeignKey("BasePoint", on_delete=models.CASCADE)
+
+
+class UserRouteTransaction(BaseUserRoutePoint):
+    type = "transition"
+    point_from = models.ForeignKey(
+        "BasePoint", related_name="user_route_point_from", on_delete=models.CASCADE
+    )
+    point_to = models.ForeignKey(
+        "BasePoint", related_name="user_route_point_to", on_delete=models.CASCADE
+    )
+    distance = models.FloatField()

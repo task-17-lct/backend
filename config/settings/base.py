@@ -291,7 +291,7 @@ CELERY_REDIS_PASSWORD = env("CELERY_REDIS_PASSWORD", default=None)
 CELERY_REDIS_DB = env("CELERY_REDIS_DB", default=0)
 
 CELERY_REDIS_SSL = env.bool("CELERY_REDIS_SSL", default=False)
-CELERY_BROKER_URL = env("CELERY_BROKER_URL", default='')
+CELERY_BROKER_URL = env("CELERY_BROKER_URL", default="")
 CELERY_TASK_SERIALIZER = "json"
 CELERY_ACCEPT_CONTENT = ["application/json"]
 CELERY_ENABLE_UTC = True
@@ -301,7 +301,6 @@ CELERY_BEAT_SCHEDULE = {
         "task": "django_clickhouse.tasks.clickhouse_auto_sync",
         "schedule": timedelta(seconds=5),
         "options": {"expires": 1},
-
     },
 }
 # DRF
@@ -346,7 +345,7 @@ SIMPLE_JWT = {
 # ------------------------------------------------------------------------------
 CLICKHOUSE_DATABASES = {
     "default": {
-        "db_url": env("CLICKHOUSE_URL", default="http://akarpov.ru:1337"),
+        "db_url": env("CLICKHOUSE_URL", default="http://localhost:8123"),
         "db_name": env("CLICKHOUSE_DB", default="default"),
         "username": env("CLICKHOUSE_USER", default="default"),
         "password": env("CLICKHOUSE_PASSWORD", default="default"),
