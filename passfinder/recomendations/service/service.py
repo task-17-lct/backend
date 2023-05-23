@@ -296,7 +296,7 @@ def get_nearest_favorite(events: Iterable[Event], user: User, exclude_events: It
 
 
 def filter_hotel(region: Region, user: User, stars: Iterable[int]):
-    hotels = Hotel.objects.filter(region=region)
+    hotels = Hotel.objects.filter(city=region)
     return choice(hotels)
 
 
@@ -321,11 +321,11 @@ def generate_point(point: BasePoint):
         "type": "point",
         "point": point,
         "point_type": "",
-        "time": timedelta(minutes=90+choice(range(-80, 90, 10)))
+        "time": timedelta(minutes=90+choice(range(-10, 90, 10)))
     }
 
 
-def generate_path(region: Region, user: User):
+def generate_path(region: City, user: User):
     #region_events = Event.objects.filter(region=region)
 
     hotel = filter_hotel(region, user, [])
