@@ -1,18 +1,21 @@
 from annoy import AnnoyIndex
 from .mapping.mapping import *
 from .models.models import *
-from passfinder.events.models import Event, Region
-from passfinder.recomendations.models import UserPreferences, NearestEvent
+from passfinder.events.models import Event, Region, Hotel, BasePoint, City
+from passfinder.recomendations.models import UserPreferences, NearestEvent, NearestHotel
 from random import choice
 from collections import Counter
 from passfinder.users.models import User
 from collections.abc import Iterable
+from django.db.models import Q
+from geopy.distance import geodesic as GD
+from datetime import timedelta, time, datetime
 
 
-def get_nearest_(instance_model, model_type, mapping, nearest_n, ml_model):
+def get_nearest_(instance_model, model_type, mapping, rev_mapping, nearest_n, ml_model):
     how_many = len(Event.objects.filter(type=model_type))
 
-    index = mapping[instance_model.oid]
+    index = rev_mapping[instance_model.oid]
     nearest = ml_model.get_nns_by_item(index, len(mapping))
 
     res = []
@@ -25,23 +28,23 @@ def get_nearest_(instance_model, model_type, mapping, nearest_n, ml_model):
 
 
 def nearest_attraction(attraction, nearest_n):
-    return get_nearest_(attraction, 'attraction', attraction_mapping, nearest_n, attracion_model)
+    return get_nearest_(attraction, 'attraction', attraction_mapping, rev_attraction_mapping, nearest_n, attracion_model)
 
 
 def nearest_movie(movie, nearest_n):
-    return get_nearest_(movie, 'movie', cinema_mapping, nearest_n, cinema_model)
+    return get_nearest_(movie, 'movie', cinema_mapping, rev_cinema_mapping, nearest_n, cinema_model)
 
 
 def nearest_plays(play, nearest_n):
-    return get_nearest_(play, 'plays', plays_mapping, nearest_n, plays_model)
+    return get_nearest_(play, 'plays', plays_mapping, rev_plays_mapping, nearest_n, plays_model)
 
 
 def nearest_excursion(excursion, nearest_n):
-    return get_nearest_(excursion, 'excursion', excursion_mapping, nearest_n, excursion_model)
+    return get_nearest_(excursion, 'excursion', excursion_mapping, rev_excursion_mapping, nearest_n, excursion_model)
 
 
 def nearest_concert(concert, nearest_n):
-    return get_nearest_(concert, 'concert', concert_mapping, nearest_n, concert_model)
+    return get_nearest_(concert, 'concert', concert_mapping, rev_concert_mapping, nearest_n, concert_model)
 
 
 def get_nearest_event(event, nearest_n):
@@ -188,7 +191,14 @@ def get_personal_movies_recommendation(user):
 
 
 def dist_func(event1: Event, event2: Event):
-    return (event1.lat - event2.lat) ** 2 + (event2.lon - event2.lon) ** 2
+    # cords1 = [event1.lat, event1.lon]
+    # cords2 = [event2.lat, event2.lon]
+    # try:
+    #     dist = GD(cords1, cords2).km
+    #     return dist
+    # except:
+    #     return 1000000
+    return (event1.lon - event2.lon) ** 2 + (event1.lat - event2.lat) ** 2
 
 
 def generate_nearest():
@@ -203,14 +213,36 @@ def generate_nearest():
             print(i)
 
 
-def calculate_mean_metric(favorite_events: Iterable[Event], target_event: Event, model: AnnoyIndex, rev_list: Iterable[str]):
+def generate_hotel_nearest():
+    NearestHotel.objects.all().delete()
+    all_events = list(Event.objects.all())
+    hotels = list(Hotel.objects.all())
+    for i, hotel in enumerate(hotels):
+        event_all_events = list(sorted(all_events.copy(), key=lambda x: dist_func(hotel, x)))
+        nearest = NearestHotel.objects.create(hotel=hotel)
+        nearest.nearest_events.set(event_all_events[0:100])
+        if i % 100 == 0:
+            print(i)
+
+def match_points():
+    regions = list(City.objects.all())
+    for i, point in enumerate(Event.objects.all()):
+        s_regions = list(sorted(regions.copy(), key=lambda x: dist_func(point, x)))
+        point.city = s_regions[0]
+        point.save()
+        if i % 10 == 0:
+            print(i)
+
+
+
+def calculate_mean_metric(favorite_events: Iterable[Event], target_event: Event, model: AnnoyIndex, rev_mapping):
     if not len(favorite_events):
         return 100000
     
     dists = []
-    target_event_idx = rev_list[target_event.oid]
+    target_event_idx = rev_mapping[target_event.oid]
     for fav in favorite_events:
-        dists.append(model.get_distance(rev_list[fav.oid], target_event_idx))
+        dists.append(model.get_distance(rev_mapping[fav.oid], target_event_idx))
     return sum(dists) / len(dists)
 
 
@@ -222,7 +254,7 @@ def calculate_favorite_metric(event: Event, user: User):
             preferred,
             event,
             plays_model,
-            plays_mapping
+            rev_plays_mapping
         )
     if event.type == 'concert':
         preferred = pref.preferred_concerts.all()
@@ -230,7 +262,7 @@ def calculate_favorite_metric(event: Event, user: User):
             preferred,
             event,
             concert_model,
-            concert_mapping
+            rev_concert_mapping
         )
     if event.type == 'movie':
         preferred = pref.preffered_movies.all()
@@ -238,14 +270,21 @@ def calculate_favorite_metric(event: Event, user: User):
             preferred,
             event,
             cinema_model,
-            cinema_mapping
+            rev_cinema_mapping
         )
     return 1000000
 
 
 def get_nearest_favorite(events: Iterable[Event], user: User, exclude_events: Iterable[Event]=[]):
-    result = events[0]
-    result_min = calculate_favorite_metric(events[0], user)
+    
+    first_event = None
+    for candidate in events:
+        if candidate not in exclude_events: 
+            first_event = candidate
+            break
+
+    result = first_event
+    result_min = calculate_favorite_metric(result, user)
     for event in events:
         if event in exclude_events: continue
         local_min_metric = calculate_favorite_metric(event, user)
@@ -256,17 +295,62 @@ def get_nearest_favorite(events: Iterable[Event], user: User, exclude_events: It
     return result
 
 
-def generate_path(region: Region, user: User):
-    region_events = Event.objects.filter(region=region)
+def filter_hotel(region: Region, user: User, stars: Iterable[int]):
+    hotels = Hotel.objects.filter(region=region)
+    return choice(hotels)
 
-    start_point = get_nearest_favorite(region_events, user, [])
+
+def time_func(km_distance: float):
+    return timedelta(minutes=(km_distance) / (4.0 / 60))
+
+
+def generate_route(point1: BasePoint, point2: BasePoint):
+    distance = dist_func(point1, point2)
+    time = time_func(distance)
+    return {
+        "type": "transition",
+        "from": point1,
+        "to": point2,
+        "distance": distance,
+        "time": time
+    }
+
+
+def generate_point(point: BasePoint):
+    return {
+        "type": "point",
+        "point": point,
+        "point_type": "",
+        "time": timedelta(minutes=90+choice(range(-80, 90, 10)))
+    }
+
+
+def generate_path(region: Region, user: User):
+    #region_events = Event.objects.filter(region=region)
+
+    hotel = filter_hotel(region, user, [])
+
+    candidates = NearestHotel.objects.get(hotel=hotel).nearest_events.all()
+
+    start_point = get_nearest_favorite(candidates, user, [])
 
     candidates = NearestEvent.objects.get(event=start_point).nearest.all()
 
     points = [start_point]
 
-    while len(points) < 5:
+    path = [generate_point(points[-1])]
+
+    start_time = datetime.combine(datetime.now(), time(hour=10))
+
+    while start_time.hour < 22:
         candidates = NearestEvent.objects.get(event=points[-1]).nearest.all()
         points.append(get_nearest_favorite(candidates, user, points))
+        
+        transition_route = generate_route(points[-1], points[-2])
+        start_time += transition_route['time']
+
+        point_route = generate_point(points[-1])
+        start_time += point_route['time']
+        path.extend([transition_route, point_route])
     
-    return points
+    return hotel, points, path
