@@ -11,6 +11,9 @@ from .serializers import (
     UserRegisterSerializer,
     UserPreferenceSerializer,
 )
+from ..models import UserPreference
+from ...events.api.serializers import PointSerializer
+from ...events.models import BasePoint
 
 User = get_user_model()
 
@@ -45,3 +48,12 @@ class RegisterApiView(generics.CreateAPIView):
 
 class CreateUserPreferenceApiView(generics.CreateAPIView):
     serializer_class = UserPreferenceSerializer
+
+
+class ListUserFavoritePointsApiView(generics.ListAPIView):
+    serializer_class = PointSerializer
+
+    def get_queryset(self):
+        return BasePoint.objects.filter(
+            user_preferences__user=self.request.user, user_preferences__type="favorite"
+        )

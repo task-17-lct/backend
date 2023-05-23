@@ -10,11 +10,6 @@ class HotelPhoneSerializer(serializers.ModelSerializer):
         exclude = "hotel"
 
 
-class CitySerializer(serializers.ModelSerializer):
-    class Meta:
-        model = City
-
-
 class HotelSerializer(serializers.ModelSerializer):
     phones = HotelPhoneSerializer(many=True)
     source = serializers.CharField(source="parser_source")
@@ -41,11 +36,12 @@ class EventSerializer(serializers.ModelSerializer):
 class PointSerializer(serializers.ModelSerializer):
     class Meta:
         model = BasePoint
-        fields = ["title", "description", "location", "icon"]
+        fields = ["oid", "title", "description", "location", "icon"]
 
 
 class RouteSerializer(serializers.Serializer):
     name = serializers.CharField()
+    date = serializers.DateField(allow_null=True)
     description = serializers.CharField()
     points = serializers.ListSerializer(child=PointSerializer())
 
@@ -54,11 +50,59 @@ class RouteInputSerializer(serializers.Serializer):
     date_from = serializers.DateField(required=False, allow_null=True)
     date_to = serializers.DateField(required=False, allow_null=True)
     region = serializers.CharField(
-        min_length=24, max_length=24, required=False, allow_blank=True
+        min_length=24, max_length=24, required=False, allow_blank=True, allow_null=True
     )
 
 
+class CitySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = City
+        fields = ["oid", "title"]
+
+
 class RegionSerializer(serializers.ModelSerializer):
+    cities = CitySerializer(many=True)
+
     class Meta:
         model = Region
-        fields = ["oid", "title", "description_short"]
+        fields = ["oid", "title", "description_short", "cities"]
+
+
+class InputRoutePointSerializer(serializers.Serializer):
+    type = serializers.ChoiceField(choices=["point", "transition"])
+    time = serializers.IntegerField(min_value=0, required=True)
+
+    # point
+    point = serializers.CharField(
+        min_length=24, max_length=24, required=False, allow_blank=True, allow_null=True
+    )
+
+    # transition
+    point_from = serializers.CharField(
+        min_length=24, max_length=24, required=False, allow_blank=True, allow_null=True
+    )
+    point_to = serializers.CharField(
+        min_length=24, max_length=24, required=False, allow_blank=True, allow_null=True
+    )
+    distance = serializers.FloatField(min_value=0, required=False, allow_null=True)
+
+    def validate(self, data):
+        if data["type"] == "point":
+            if "point" not in data or not data["point"]:
+                raise serializers.ValidationError("Point id is required")
+            get_object_or_404(BasePoint, oid=data["point"])
+        else:
+            if "point_to" not in data or not data["point_to"]:
+                raise serializers.ValidationError("Point to id is required")
+            get_object_or_404(BasePoint, oid=data["point_to"])
+            if "point_from" not in data or not data["point_from"]:
+                raise serializers.ValidationError("Point from id is required")
+            get_object_or_404(BasePoint, oid=data["point_from"])
+            if "distance" not in data or not data["distance"]:
+                raise serializers.ValidationError("Distance is required")
+
+        return data
+
+
+class InputRouteSerializer(serializers.Serializer):
+    points = serializers.ListSerializer(child=InputRoutePointSerializer())

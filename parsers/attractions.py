@@ -1,10 +1,11 @@
 import json
 from pprint import pprint
 
-from passfinder.events.models import Region
+from passfinder.events.models import Region, Event
 
 with open("data/pos-attr.json") as f:
     data = json.load(f)
+
 
 reggg = {
     "г. Санкт-Петербург": "Санкт-Петербург",
@@ -16,7 +17,7 @@ reggg = {
     "Республика Северная Осетия - Алания": "Республика Северная Осетия – Алания",
     "Ханты-Мансийский автономный округ - Югра": "Ханты-Мансийский автономный округ — Югра",
 }
-
+rett = []
 ret = []
 for infff in data:
     info = infff["general"]
@@ -38,6 +39,21 @@ for infff in data:
         }
         if "typologies" in info:
             res["extra_kwargs"]["typologies"] = [x["value"] for x in info["typologies"]]
+        if "securityInfo" in info or "borderInfo" in info:
+            for ev in Event.objects.filter(
+                title=info["name"],
+                address=res["address"],
+                lat=res["lat"],
+                lon=res["lon"],
+            ):
+                ddd = [
+                    info["securityInfo"] if "securityInfo" in info else "",
+                    info["borderInfo"] if "borderInfo" in info else "",
+                ]
+                ddd = [x for x in ddd if x]
+                ev.description = " ".join(ddd)
+                ev.save()
+
         ret.append(res)
 
 
