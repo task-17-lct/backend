@@ -53,6 +53,7 @@ django-filter = "^23.2"
 djangorestframework-simplejwt = "^5.2.2"
 beautifulsoup4 = "^4.12.2"
 django-clickhouse = "^1.2.1"
+geopy = "^2.3.0"
 
 
 [build-system]
