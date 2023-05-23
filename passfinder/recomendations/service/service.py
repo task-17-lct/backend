@@ -191,9 +191,14 @@ def get_personal_movies_recommendation(user):
 
 
 def dist_func(event1: Event, event2: Event):
-    cords1 = [event1.lat, event1.lon]
-    cords2 = [event2.lat, event2.lon]
-    return GD(cords1, cords2).km
+    # cords1 = [event1.lat, event1.lon]
+    # cords2 = [event2.lat, event2.lon]
+    # try:
+    #     dist = GD(cords1, cords2).km
+    #     return dist
+    # except:
+    #     return 1000000
+    return (event1.lon - event2.lon) ** 2 + (event1.lat - event2.lat) ** 2
 
 
 def generate_nearest():
@@ -219,12 +224,15 @@ def generate_hotel_nearest():
         if i % 100 == 0:
             print(i)
 
-def match_museums():
-    regions = list(Region.objects.all())
-    for museum in Event.objects.filter(type='museum'):
-        s_regions = list(sorted(regions.copy(), key=lambda x: dist_func(museum, x)))
-        museum.region = s_regions[0]
-        museum.save()
+def match_points():
+    regions = list(City.objects.all())
+    for i, point in enumerate(Event.objects.all()):
+        s_regions = list(sorted(regions.copy(), key=lambda x: dist_func(point, x)))
+        point.city = s_regions[0]
+        point.save()
+        if i % 10 == 0:
+            print(i)
+
 
 
 def calculate_mean_metric(favorite_events: Iterable[Event], target_event: Event, model: AnnoyIndex, rev_mapping):
