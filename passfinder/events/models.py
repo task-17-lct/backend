@@ -81,7 +81,7 @@ class Tag(OIDModel):
 
 
 class BasePoint(OIDModel, PolymorphicModel):
-    title = models.CharField(max_length=250)
+    title = models.CharField(max_length=500)
     parser_source = models.CharField(max_length=250, null=True, blank=True)
     description = models.TextField()
     city = models.ForeignKey(
@@ -136,6 +136,7 @@ class Event(BasePoint):
         concert = "concert", "концерт"
         spektatli = "plays", "спектакли"
 
+    address = models.CharField(max_length=250, null=True)
     payment_method = models.CharField(max_length=250, null=True, blank=True)
     type = models.CharField(
         db_index=True,
@@ -150,6 +151,8 @@ class Event(BasePoint):
     duration = models.IntegerField(blank=True, null=True)
     ticket_price = models.IntegerField(blank=True, null=True)
     schedule = models.JSONField(null=True)
+
+    extra_kwargs = models.JSONField(null=True)
 
 
 class Hotel(BasePoint):
