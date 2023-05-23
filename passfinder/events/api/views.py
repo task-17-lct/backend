@@ -7,8 +7,17 @@ from passfinder.events.api.serializers import (
     RouteSerializer,
     RegionSerializer,
     RouteInputSerializer,
+    CitySerializer,
+    InputRouteSerializer,
 )
-from passfinder.events.models import BasePoint, Region
+from passfinder.events.models import (
+    BasePoint,
+    Region,
+    City,
+    UserRoute,
+    UserRoutePoint,
+    UserRouteTransaction,
+)
 
 
 class BuildRouteApiView(GenericAPIView):
@@ -21,6 +30,7 @@ class BuildRouteApiView(GenericAPIView):
             routes.append(
                 {
                     "name": "bebra",
+                    "date": None,
                     "description": "bebra bebra bebra",
                     "points": PointSerializer(many=True).to_representation(
                         BasePoint.objects.order_by("?")[:10]
@@ -35,7 +45,8 @@ class BuildRouteApiView(GenericAPIView):
     def post(self, request):
         serializer = RouteInputSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        region = serializer.data["region"]
+        data = serializer.data
+        region = data["region"]
         routes = []
         if region:
             region = get_object_or_404(Region, oid=region)
@@ -43,6 +54,7 @@ class BuildRouteApiView(GenericAPIView):
                 routes.append(
                     {
                         "name": "bebra",
+                        "date": data["date_from"],
                         "description": "bebra bebra bebra",
                         "points": PointSerializer(many=True).to_representation(
                             region.points.all().order_by("?")[:10]
@@ -54,6 +66,7 @@ class BuildRouteApiView(GenericAPIView):
                 routes.append(
                     {
                         "name": "bebra",
+                        "date": data["date_from"],
                         "description": "bebra bebra bebra",
                         "points": PointSerializer(many=True).to_representation(
                             BasePoint.objects.order_by("?")[:10]
@@ -66,3 +79,31 @@ class BuildRouteApiView(GenericAPIView):
 class ListRegionApiView(ListAPIView):
     serializer_class = RegionSerializer
     queryset = Region.objects.all()
+
+
+class ListCityApiView(ListAPIView):
+    serializer_class = CitySerializer
+    queryset = City.objects.all().order_by("title")
+
+
+class SaveRouteSerializer(GenericAPIView):
+    serializer_class = InputRouteSerializer
+
+    def post(self, request, *args, **kwargs):
+        serializer = InputRouteSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.data
+        route = UserRoute.objects.create(user=self.request.user)
+        for point in data["points"]:
+            if point["type"] == "point":
+                UserRoutePoint.objects.create(
+                    route=route, point=BasePoint.objects.get(oid=point["point"])
+                )
+            else:
+                UserRouteTransaction.objects.create(
+                    route=route,
+                    point_from=BasePoint.objects.get(oid=point["point_from"]),
+                    point_to=BasePoint.objects.get(oid=point["point_to"]),
+                )
+
+        return Response(data=data)
