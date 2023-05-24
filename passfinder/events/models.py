@@ -73,11 +73,24 @@ class Place(OIDModel):
         return [self.lat, self.lon]
 
 
-class Tag(OIDModel):
-    name = models.CharField(max_length=250)
+class Category(OIDModel):
+    name = models.CharField(max_length=500, unique=True)
+    description = models.TextField()
 
     def __str__(self):
         return self.name
+
+
+class PointCategory(models.Model):
+    point = models.ForeignKey(
+        "BasePoint", related_name="categories", on_delete=models.CASCADE
+    )
+    category = models.ForeignKey(
+        "Category", related_name="points", on_delete=models.CASCADE
+    )
+
+    class Meta:
+        unique_together = ("point", "category")
 
 
 class BasePoint(OIDModel, PolymorphicModel):
