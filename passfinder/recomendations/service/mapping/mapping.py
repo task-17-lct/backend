@@ -5,12 +5,14 @@ cinema_mapping = None
 plays_mapping = None
 excursion_mapping = None
 concert_mapping = None
+mus_mapping = None
 
 rev_attraction_mapping = None
 rev_cinema_mapping = None
 rev_plays_mapping = None
 rev_excursion_mapping = None
 rev_concert_mapping = None
+mus_rev_mapping = None
 
 
 def build_dict(list_mapping):
@@ -54,3 +56,9 @@ with open('passfinder/recomendations/service/mapping/concerts.pickle', 'rb') as 
     lst = pickle.load(file)
     concert_mapping = build_dict(lst)
     rev_concert_mapping = build_rev_dict(lst)
+
+
+with open('passfinder/recomendations/service/mapping/mus.pickle', 'rb') as file:
+    lst = pickle.load(file)
+    mus_mapping = build_dict(lst)
+    rev_mus_mapping = build_rev_dict(lst)

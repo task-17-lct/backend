@@ -3,7 +3,7 @@ from .mapping.mapping import *
 from .models.models import *
 from passfinder.events.models import Event, Region, Hotel, BasePoint, City
 from passfinder.recomendations.models import UserPreferences, NearestEvent, NearestHotel
-from random import choice
+from random import choice, sample
 from collections import Counter
 from passfinder.users.models import User
 from collections.abc import Iterable
@@ -37,6 +37,17 @@ def nearest_attraction(attraction, nearest_n):
         rev_attraction_mapping,
         nearest_n,
         attracion_model,
+    )
+
+
+def nearest_mus(museum, nearest_n):
+    return get_nearest_(
+        museum,
+        "museum",
+        mus_mapping,
+        rev_mus_mapping,
+        nearest_n,
+        mus_model
     )
 
 
@@ -81,6 +92,10 @@ def get_nearest_event(event, nearest_n):
         return nearest_concert(event, nearest_n)
     if event.type == "movie":
         return nearest_movie(event, nearest_n)
+    if event.type == 'museum':
+        return nearest_mus(event, nearest_n)
+    if event.type == 'attraction':
+        return nearest_attraction(event, nearest_n)
 
 
 def update_preferences_state(user, event, direction):
@@ -312,6 +327,12 @@ def calculate_favorite_metric(event: Event, user: User):
     if event.type == "movie":
         preferred = pref.preffered_movies.all()
         return calculate_mean_metric(preferred, event, cinema_model, rev_cinema_mapping)
+    if event.type == 'attraction':
+        preferred = pref.prefferred_attractions.all()
+        return calculate_mean_metric(preferred, event, attracion_model, rev_attraction_mapping)
+    if event.type == 'museum':
+        preferred = pref.prefferred_museums.all()
+        return calculate_mean_metric(preferred, event, mus_model, rev_mus_mapping)
     return 1000000
 
 
@@ -395,3 +416,40 @@ def generate_path(region: Region, user: User):
         path.extend([transition_route, point_route])
 
     return hotel, points, path
+
+
+def calculate_distance(sample1: Event, samples: Iterable[Event], model: AnnoyIndex, rev_mapping):
+    metrics = []
+
+    for sample in samples:
+        metrics.append(model.get_distance(rev_mapping[sample1.oid], rev_mapping[sample.oid]))
+    
+    return sum(metrics) / len(metrics)
+    
+
+def get_onboarding_attractions():
+    sample_attractions = sample(list(Event.objects.filter(type='attraction')), 200)
+    first_attraction = choice(sample_attractions)
+
+    attractions = [first_attraction]
+
+    while len(attractions) < 10:
+        mx_dist = 0
+        mx_attraction = None
+        for att in sample_attractions:
+            if att in attractions: continue 
+            local_dist = calculate_distance(
+                att,
+                attractions,
+                attracion_model, 
+                rev_attraction_mapping
+            )
+            if local_dist > mx_dist:
+                mx_dist = local_dist
+                mx_attraction = att
+        attractions.append(mx_attraction)
+    return attractions
+
+
+def get_onboarding_hotels(stars=Iterable[int]):
+    return sample(list(Hotel.objects.filter(stars__in=stars)), 10)

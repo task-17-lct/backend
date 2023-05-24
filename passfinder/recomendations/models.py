@@ -15,6 +15,13 @@ class UserPreferences(models.Model):
     preferred_concerts = models.ManyToManyField(Event, related_name='preffered_users_concert')
     unpreferred_concerts = models.ManyToManyField(Event, related_name='unpreffered_users_concert')
 
+    prefferred_attractions = models.ManyToManyField(Event, related_name='preffered_users_attractions')
+    unprefferred_attractions = models.ManyToManyField(Event, related_name='unpreffered_users_attractions')
+
+    prefferred_museums = models.ManyToManyField(Event, related_name='preffered_users_museums')
+    unprefferred_museums = models.ManyToManyField(Event, related_name='unpreffered_users_museums')
+
+
 
 class NearestEvent(models.Model):
     event = models.ForeignKey(Event, on_delete=models.CASCADE, related_name='nearest_model_rel')
