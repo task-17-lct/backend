@@ -7,7 +7,7 @@ from passfinder.events.models import Hotel, HotelPhone, City, Event, BasePoint, 
 class HotelPhoneSerializer(serializers.ModelSerializer):
     class Meta:
         model = HotelPhone
-        exclude = "hotel"
+        exclude = ("hotel", )
 
 
 class HotelSerializer(serializers.ModelSerializer):
@@ -24,7 +24,7 @@ class MuseumSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Hotel
-        exclude = "oid"
+        exclude = ("oid", )
 
 
 class EventSerializer(serializers.ModelSerializer):
