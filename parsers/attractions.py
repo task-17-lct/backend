@@ -30,7 +30,7 @@ for infff in data:
         res = {
             "title": info["name"],
             "parser_source": "mkrf.ru",
-            "region": Region.objects.get(title=r_name),
+            # "region": Region.objects.get(title=r_name),
             "lat": info["address"]["mapPosition"]["coordinates"][0],
             "lon": info["address"]["mapPosition"]["coordinates"][1],
             "address": info["address"]["fullAddress"],
@@ -39,6 +39,7 @@ for infff in data:
         }
         if "typologies" in info:
             res["extra_kwargs"]["typologies"] = [x["value"] for x in info["typologies"]]
+
         if "securityInfo" in info or "borderInfo" in info:
             for ev in Event.objects.filter(
                 title=info["name"],
@@ -46,12 +47,7 @@ for infff in data:
                 lat=res["lat"],
                 lon=res["lon"],
             ):
-                ddd = [
-                    info["securityInfo"] if "securityInfo" in info else "",
-                    info["borderInfo"] if "borderInfo" in info else "",
-                ]
-                ddd = [x for x in ddd if x]
-                ev.description = " ".join(ddd)
+                ev.extra_kwargs = res["extra_kwargs"]
                 ev.save()
 
         ret.append(res)
