@@ -20,3 +20,7 @@ excursion_model.load('passfinder/recomendations/service/models/excursii.ann')
 
 concert_model = AnnoyIndex(N_DIMENSIONAL, 'angular')
 concert_model.load('passfinder/recomendations/service/models/concerts.ann')
+
+
+mus_model = AnnoyIndex(N_DIMENSIONAL, 'angular')
+mus_model.load('passfinder/recomendations/service/models/mus.ann')

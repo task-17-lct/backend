@@ -3,14 +3,13 @@ from rest_framework import viewsets, mixins
 from rest_framework.request import Request
 from rest_framework.response import Response
 from passfinder.events.models import Event
-from passfinder.events.api.serializers import EventSerializer
+from passfinder.events.api.serializers import EventSerializer, HotelSerializer
 from random import choice
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from .serializers import TinderProceedSerializer
+from .serializers import *
 from passfinder.recomendations.models import UserPreferences
-from ..service.service import update_preferences_state, get_next_tinder, get_personal_concerts_recommendation, \
-    get_personal_plays_recommendation, get_personal_movies_recommendation
+from ..service.service import *
 from django.views.decorators.csrf import csrf_exempt
 
 
@@ -34,6 +33,14 @@ class TinderView(viewsets.GenericViewSet):
         if event is None:
             return Response(data={}, status=404)
         return Response(data={'event': EventSerializer(event).data}, status=200)
+
+    @action(methods=['POST'], detail=False, serializer_class=TinderGetEventFilterSerializer)
+    def get_event(self, request: Request):
+        # отдавать под пользователя
+        events = Event.objects.filter(type__in=request.data['type'])
+        return Response(data={
+            'event': EventSerializer(choice(events)).data
+        }, status=200)
 
 
 class PersonalRecommendation(viewsets.GenericViewSet):
@@ -66,3 +73,44 @@ class PersonalRecommendation(viewsets.GenericViewSet):
         for rec in recs:
             ans.append(EventSerializer(rec[1]).data)
         return Response(ans, 200)
+
+
+class OnboardingViewset(viewsets.GenericViewSet):
+    serializer_class = EventSerializer
+    model = Event
+    queryset = Event.objects.all()
+
+    @action(methods=['POST'], detail=False, serializer_class=HotelOnboardingRetrieve)
+    def hotels(self, reqeust, *args, **kwargs):
+        hotels = get_onboarding_hotels(reqeust.data['stars'])
+        res = HotelOnboardingRetrieve({'hotels': hotels}).data
+        
+        return Response(res, 200)
+
+    @action(methods=['POST'], detail=False, serializer_class=EventOnboardingRetrieve)
+    def event(self, request, *args, **kwargs):
+        events = get_onboarding_attractions()
+        res = EventOnboardingRetrieve({'events': events}).data
+        
+        return Response(res, 200)
+    
+    @action(methods=['GET'], detail=True)
+    def add_to_favorites(self, request, pk, *args, **kwargs):
+        pref, _ = UserPreferences.objects.get_or_create(user=request.user)
+
+        event = Event.objects.get(oid=pk)
+
+        if event.type == 'attraction':
+            pref.prefferred_attractions.add(event)
+        elif event.type == 'museum':
+            pref.prefferred_museums.add(event)
+        elif event.type == 'movie':
+            pref.preffered_movies.add(event)
+        elif event.type == 'play': 
+            pref.preffered_plays.add(event)
+        elif event.type == 'concert':
+            pref.preferred_concerts.add(event)
+        
+        pref.save()
+        
+        return Response(status=200)
