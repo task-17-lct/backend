@@ -120,10 +120,18 @@ class BasePoint(OIDModel, PolymorphicModel):
         return [self.lat, self.lon]
 
     @property
+    @extend_schema_field(
+        field=ListSerializer(child=FloatField(), min_length=2, max_length=2)
+    )
+    def location_dec(self):
+        return [float(format(self.lat, ".6f")), float(format(self.lon, ".6f"))]
+
+    @property
     @extend_schema_field(field=OpenApiTypes.URI)
     def icon(self):
-        # TODO: change to icon/first image
-        return "https://akarpov.ru/media/uploads/files/qMO4dDfIXP.webp"
+        if self.media:
+            return self.media.last().file.url
+        return ""
 
     def __str__(self):
         return self.title
@@ -169,10 +177,24 @@ class Event(BasePoint):
 
 
 class Hotel(BasePoint):
-    address = models.CharField(max_length=250)
+    class HotelType(models.TextChoices):
+        hotel = "hotel", "отель"
+        hostel = "hostel", "хостел"
+        guest_house = "guest_house", "гостевой дом"
+        motel = "motel", "мотель"
+
+    type = models.CharField(
+        db_index=True,
+        default=HotelType.hotel,
+        choices=HotelType.choices,
+        max_length=count_max_length(HotelType),
+    )
+    address = models.CharField(max_length=500, null=True, blank=True)
     rooms = models.JSONField(null=True)
-    email = models.CharField(max_length=250)
+    email = models.CharField(max_length=250, null=True, blank=True)
     stars = models.IntegerField(null=True)
+
+    extra_kwargs = models.JSONField(null=True)
 
 
 class HotelPhone(models.Model):

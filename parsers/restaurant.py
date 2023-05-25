@@ -56,7 +56,7 @@ for r in data:
     if "images" in info:
         for m in info["images"]:
             media.append({"file": m["source"]["id"], "type": "image"})
-    if media and 1 == 2:
+    if media:
         d["media"] = media
 
     if al:
