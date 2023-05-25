@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from rest_framework.generics import get_object_or_404
 
-from passfinder.events.models import Hotel, HotelPhone, City, Event, BasePoint, Region
+from passfinder.events.models import Hotel, HotelPhone, City, Event, BasePoint, Region, Restaurant
 
 
 class HotelPhoneSerializer(serializers.ModelSerializer):
@@ -49,7 +49,7 @@ class RouteSerializer(serializers.Serializer):
 class RouteInputSerializer(serializers.Serializer):
     date_from = serializers.DateField(required=False, allow_null=True)
     date_to = serializers.DateField(required=False, allow_null=True)
-    region = serializers.CharField(
+    city = serializers.CharField(
         min_length=24, max_length=24, required=False, allow_blank=True, allow_null=True
     )
 
@@ -106,3 +106,16 @@ class InputRoutePointSerializer(serializers.Serializer):
 
 class InputRouteSerializer(serializers.Serializer):
     points = serializers.ListSerializer(child=InputRoutePointSerializer())
+
+
+class ResaurantSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Restaurant
+        exclude = ('phones', )
+
+
+class ObjectRouteSerializer(serializers.Serializer):
+    lat = serializers.FloatField()
+    lon = serializers.FloatField()
+    title = serializers.CharField()
+    description = serializers.CharField()
