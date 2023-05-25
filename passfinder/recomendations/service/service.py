@@ -361,7 +361,6 @@ def calculate_favorite_metric(event: Event, user: User):
 def get_nearest_favorite(
     events: Iterable[Event], user: User, exclude_events: Iterable[Event] = []
 ):
-    print(events)
     first_event = None
     for candidate in events:
         if candidate not in exclude_events:
@@ -431,14 +430,12 @@ def generate_multiple_tours(user: User, city: City, start_date: datetime.date, e
 
 
 def generate_tour(user: User, city: City, start_date: datetime.date, end_date: datetime.date):
-    print("start hotel")
+    UserPreferences.objects.get_or_create(user=user)
     hotel = choice(list(Hotel.objects.filter(city=city)))
-    print("end hotel")
     current_date = start_date
     paths, points = [], []
 
     while current_date < end_date:
-        print("start day gen")
         local_points, local_paths = generate_path(user, points, hotel)
         points.extend(local_points)
         paths.append(
@@ -447,7 +444,6 @@ def generate_tour(user: User, city: City, start_date: datetime.date, end_date: d
                 'paths': local_paths
             }
         )
-        print("end day gen")
 
         current_date += timedelta(days=1)
     
@@ -470,13 +466,9 @@ def generate_path(user: User, disallowed_points: Iterable[BasePoint], hotel: Hot
     #candidates = NearestHotel.objects.get(hotel=hotel).nearest_events.all()
     allowed_types = ['museum', 'attraction']
 
-    print("start start point gen")
     start_point = NearestRestaurantToHotel.objects.get(hotel=hotel).restaurants.first()
-    print("end start point gen")
 
-    print("start first cand gen")
     candidates = list(filter(lambda x: x.type in allowed_types, map(lambda x: x.event, start_point.nearestrestauranttoevent_set.all()[0:100])))
-    print("end first cand gen")
     points = [start_point]
     path = [
         generate_hotel(hotel),
@@ -489,10 +481,8 @@ def generate_path(user: User, disallowed_points: Iterable[BasePoint], hotel: Hot
     how_many_eat = 1
 
 
-    while start_time.hour < 22:
-        print(start_time)
-        if (start_time.hour > 13 and how_many_eat == 1) or (start_time.hour > 20 and how_many_eat == 2):
-            print("start rest event gen")
+    while start_time.hour < 22 and start_time.day == datetime.now().day:
+        if (start_time.hour > 14 and how_many_eat == 1) or (start_time.hour > 20 and how_many_eat == 2):
             point = NearestRestaurantToEvent.objects.get(event=points[-1]).restaurants.all()[0]
             points.append(point)
             candidates = list(filter(lambda x: x.type in allowed_types, map(lambda x: x.event, point.nearestrestauranttoevent_set.all()[0:100])))
@@ -502,29 +492,22 @@ def generate_path(user: User, disallowed_points: Iterable[BasePoint], hotel: Hot
             path.append(generate_restaurant(points[-1]))
             start_time += timedelta(seconds=path[-1]['time'])
             how_many_eat += 1
-            print("start rest event gen")
             continue
 
         if start_time.hour > 17:
             allowed_types = ['play', 'concert', 'movie']
 
-        print("start events gen")
         if candidates is None:
             candidates = NearestEvent.objects.get(event=points[-1]).nearest.filter(type__in=allowed_types)
             if not len(candidates):
                 candidates = NearestEvent.objects.get(event=points[-1]).nearest.all()
-        print("end events gen")
 
-        print("start events select")
         try:
-            print(points)
             points.append(get_nearest_favorite(candidates, user, points + disallowed_points))
             
         except AttributeError:
             points.append(get_nearest_favorite(candidates, user, points))
-        print("end events select")
 
-        print("start route gen")
         transition_route = generate_route(points[-1], points[-2])
         start_time += timedelta(seconds=transition_route["time"])
 
@@ -532,7 +515,6 @@ def generate_path(user: User, disallowed_points: Iterable[BasePoint], hotel: Hot
         start_time += timedelta(seconds=point_route["time"])
         path.extend([transition_route, point_route])
         candidates = None
-        print("end route gen")
     return points, path
 
 
