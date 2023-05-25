@@ -54,6 +54,13 @@ djangorestframework-simplejwt = "^5.2.2"
 beautifulsoup4 = "^4.12.2"
 django-clickhouse = "^1.2.1"
 geopy = "^2.3.0"
+torch = "^2.0.1"
+sentencepiece = "^0.1.99"
+accelerate = "^0.19.0"
+bitsandbytes = "^0.39.0"
+transformers = "^4.29.2"
+peft = "^0.3.0"
+gevent = "^22.10.2"
 
 
 [build-system]

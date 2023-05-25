@@ -1,13 +1,21 @@
 from rest_framework import serializers
 from rest_framework.generics import get_object_or_404
 
-from passfinder.events.models import Hotel, HotelPhone, City, Event, BasePoint, Region, Restaurant
+from passfinder.events.models import (
+    Hotel,
+    HotelPhone,
+    City,
+    Event,
+    BasePoint,
+    Region,
+    Restaurant,
+)
 
 
 class HotelPhoneSerializer(serializers.ModelSerializer):
     class Meta:
         model = HotelPhone
-        exclude = ("hotel", )
+        exclude = ("hotel",)
 
 
 class HotelSerializer(serializers.ModelSerializer):
@@ -24,13 +32,15 @@ class MuseumSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Hotel
-        exclude = ("oid", )
+        exclude = ("oid",)
 
 
 class EventSerializer(serializers.ModelSerializer):
+    city_name = serializers.CharField(source="city.title")
+
     class Meta:
         model = Event
-        fields = ("type", "title", "description", "city", "oid")
+        fields = ("type", "title", "description", "city", "city_name", "oid")
 
 
 class PointSerializer(serializers.ModelSerializer):
@@ -111,7 +121,7 @@ class InputRouteSerializer(serializers.Serializer):
 class ResaurantSerializer(serializers.ModelSerializer):
     class Meta:
         model = Restaurant
-        exclude = ('phones', )
+        exclude = ("phones",)
 
 
 class ObjectRouteSerializer(serializers.Serializer):
