@@ -182,6 +182,8 @@ class Hotel(BasePoint):
         hostel = "hostel", "хостел"
         guest_house = "guest_house", "гостевой дом"
         motel = "motel", "мотель"
+        apartment = "apartment", "квартира"
+        chalet = "chalet", "домик"
 
     type = models.CharField(
         db_index=True,

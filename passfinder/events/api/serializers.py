@@ -36,11 +36,9 @@ class MuseumSerializer(serializers.ModelSerializer):
 
 
 class EventSerializer(serializers.ModelSerializer):
-    city_name = serializers.CharField(source="city.title")
-
     class Meta:
         model = Event
-        fields = ("type", "title", "description", "city", "city_name", "oid")
+        fields = ("type", "title", "description", "city", "oid")
 
 
 class PointSerializer(serializers.ModelSerializer):
