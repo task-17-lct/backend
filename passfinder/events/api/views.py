@@ -1,6 +1,12 @@
 from rest_framework.generics import GenericAPIView, ListAPIView, get_object_or_404
 from rest_framework.response import Response
 from drf_spectacular.utils import extend_schema
+from django.db.models import Count
+from random import choice
+from passfinder.recomendations.service.service import generate_tour
+from datetime import timedelta, datetime
+from .consts import *
+
 
 from passfinder.events.api.serializers import (
     PointSerializer,
@@ -46,34 +52,34 @@ class BuildRouteApiView(GenericAPIView):
         serializer = RouteInputSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         data = serializer.data
-        region = data["region"]
-        routes = []
-        if region:
-            region = get_object_or_404(Region, oid=region)
-            for _ in range(2):
-                routes.append(
-                    {
-                        "name": "bebra",
-                        "date": data["date_from"],
-                        "description": "bebra bebra bebra",
-                        "points": PointSerializer(many=True).to_representation(
-                            region.points.all().order_by("?")[:10]
-                        ),
-                    }
-                )
+        city_id = data["city"]
+        start_date = datetime.strptime(data['date_from'], '%Y-%m-%d')
+        end_date = datetime.strptime(data['date_to'], '%Y-%m-%d')
+        region = None
+
+        if city_id:
+            region = get_object_or_404(City, oid=city_id)
         else:
-            for _ in range(10):
-                routes.append(
-                    {
-                        "name": "bebra",
-                        "date": data["date_from"],
-                        "description": "bebra bebra bebra",
-                        "points": PointSerializer(many=True).to_representation(
-                            BasePoint.objects.order_by("?")[:10]
-                        ),
-                    }
-                )
-        return Response(data=routes)
+            region = choice(City.objects.annotate(points_count=Count('points')).filter(title__in=city_in_hotels))
+        
+        if not start_date and end_date:
+            tour_length = choice([timedelta(days=i) for i in range(1, 4)])
+            start_date = end_date - tour_length
+        if not end_date and start_date:
+            tour_length = choice([timedelta(days=i) for i in range(1, 4)])
+            end_date = end_date + tour_length
+        if not end_date and not start_date:
+            max_date = datetime.now() + timedelta(days=15)
+            start_date = choice([max_date - timedelta(days=i) for i in range(1, 5)])
+            tour_length = choice([timedelta(days=i) for i in range(1, 4)])
+            end_date = start_date + tour_length
+
+        print(request.user, region, start_date, end_date)
+
+        tour = generate_tour(request.user, region, start_date, end_date)
+        print(len(tour[1]))
+        
+        return Response(data=tour[0])
 
 
 class ListRegionApiView(ListAPIView):
