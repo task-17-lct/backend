@@ -1,19 +1,30 @@
 import json
 
-with open("data/osm/artwork.json") as f:
+with open("data/osm/viewpoint.json") as f:
     data = json.load(f)
+
+nodes_loc = {}
+
+for el in data["elements"]:
+    if "lat" in el and "lon" in el:
+        nodes_loc[el["id"]] = [el["lat"], el["lon"]]
 
 
 ress = []
 
 for el in data["elements"]:
     if "tags" in el and "name" in el["tags"] and "lat" in el and "lon" in el:
+        nodes = []
+
+        if "nodes" in el:
+            nodes = [nodes_loc[x] for x in el["nodes"]]
+
         info = el["tags"]
         if "tourism" in info:
             del info["tourism"]
         res = {
             "title": info["name:ru"] if "name:ru" in info else info["name"],
-            "type": "artwork",
+            "type": "viewpoint",
             "parser_source": "openstreetmap.org",
             "lat": el["lat"],
             "lon": el["lon"],
@@ -43,8 +54,11 @@ for el in data["elements"]:
 
         res["extra_kwargs"] = info
 
+        if nodes:
+            res["extra_kwargs"]["nodes"] = nodes
+
         ress.append(res)
 
 
-def get_artwork():
+def get_viewpoint():
     return ress

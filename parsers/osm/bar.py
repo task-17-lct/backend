@@ -1,6 +1,6 @@
 import json
 
-with open("data/osm/artwork.json") as f:
+with open("data/osm/bars.json") as f:
     data = json.load(f)
 
 
@@ -13,7 +13,7 @@ for el in data["elements"]:
             del info["tourism"]
         res = {
             "title": info["name:ru"] if "name:ru" in info else info["name"],
-            "type": "artwork",
+            "type": "bar",
             "parser_source": "openstreetmap.org",
             "lat": el["lat"],
             "lon": el["lon"],
@@ -41,10 +41,16 @@ for el in data["elements"]:
         if "description" in info:
             res["description"] = info["description"]
 
+        if "opening_hours" in info:
+            res["working_time"] = {"opening_hours": info["opening_hours"]}
+
+        if "phone" in info:
+            res["phones"] = [info["phone"]]
+
         res["extra_kwargs"] = info
 
         ress.append(res)
 
 
-def get_artwork():
+def get_bar():
     return ress

@@ -231,6 +231,8 @@ class Restaurant(BasePoint):
     working_time = models.JSONField(null=True)
     phones = ArrayField(models.CharField(max_length=18), null=True)
 
+    extra_kwargs = models.JSONField(null=True)
+
 
 class UserRoute(models.Model):
     user = models.ForeignKey(
