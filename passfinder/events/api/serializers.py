@@ -1,3 +1,5 @@
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 from rest_framework.generics import get_object_or_404
 
@@ -9,6 +11,8 @@ from passfinder.events.models import (
     BasePoint,
     Region,
     Restaurant,
+    UserRoute,
+    UserRouteDate,
 )
 
 
@@ -78,20 +82,17 @@ class RegionSerializer(serializers.ModelSerializer):
 
 class InputRoutePointSerializer(serializers.Serializer):
     type = serializers.ChoiceField(choices=["point", "transition"])
-    time = serializers.IntegerField(min_value=0, required=True)
+    duration = serializers.IntegerField(min_value=0, required=True)
 
     # point
     point = serializers.CharField(
         min_length=24, max_length=24, required=False, allow_blank=True, allow_null=True
     )
+    point_type = serializers.CharField(
+        required=False, allow_blank=True, allow_null=True
+    )
 
     # transition
-    point_from = serializers.CharField(
-        min_length=24, max_length=24, required=False, allow_blank=True, allow_null=True
-    )
-    point_to = serializers.CharField(
-        min_length=24, max_length=24, required=False, allow_blank=True, allow_null=True
-    )
     distance = serializers.FloatField(min_value=0, required=False, allow_null=True)
 
     def validate(self, data):
@@ -99,24 +100,49 @@ class InputRoutePointSerializer(serializers.Serializer):
             if "point" not in data or not data["point"]:
                 raise serializers.ValidationError("Point id is required")
             get_object_or_404(BasePoint, oid=data["point"])
+            if "distance" not in data or not data["point_type"]:
+                raise serializers.ValidationError("Point type is required")
         else:
-            if "point_to" not in data or not data["point_to"]:
-                raise serializers.ValidationError("Point to id is required")
-            get_object_or_404(BasePoint, oid=data["point_to"])
-            if "point_from" not in data or not data["point_from"]:
-                raise serializers.ValidationError("Point from id is required")
-            get_object_or_404(BasePoint, oid=data["point_from"])
             if "distance" not in data or not data["distance"]:
                 raise serializers.ValidationError("Distance is required")
 
         return data
 
 
-class InputRouteSerializer(serializers.Serializer):
+class InputRouteDateSerializer(serializers.Serializer):
+    date = serializers.DateField()
     points = serializers.ListSerializer(child=InputRoutePointSerializer())
 
 
-class ResaurantSerializer(serializers.ModelSerializer):
+class InputRouteSerializer(serializers.Serializer):
+    dates = serializers.ListSerializer(child=InputRouteDateSerializer())
+
+
+class ListUserRouteSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = UserRoute
+        fields = ["id", "created"]
+
+
+class UserRouteDateSerializer(serializers.ModelSerializer):
+    points = serializers.SerializerMethodField(method_name="get_points")
+
+    @extend_schema_field(InputRoutePointSerializer)
+    def get_points(self, obj):
+        return [x.get_json() for x in obj.points.all()]
+
+    class Meta:
+        model = UserRouteDate
+        fields = ["date", "points"]
+
+
+class UserRouteSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = UserRoute
+        fields = ["created", "dates"]
+
+
+class RestaurantSerializer(serializers.ModelSerializer):
     class Meta:
         model = Restaurant
         exclude = ("phones",)

@@ -245,23 +245,45 @@ class UserRoute(models.Model):
         return f"{self.user}'s route"
 
 
-class BaseUserRoutePoint(PolymorphicModel):
+class UserRouteDate(models.Model):
+    date = models.DateField()
     route = models.ForeignKey(
-        "UserRoute", related_name="points", on_delete=models.CASCADE
+        "UserRoute", related_name="dates", on_delete=models.CASCADE
     )
 
+    class Meta:
+        unique_together = ("date", "route")
 
-class UserRoutePoint(BaseUserRoutePoint):
+
+class BaseUserRouteDatePoint(PolymorphicModel):
+    date = models.ForeignKey(
+        "UserRouteDate", related_name="points", on_delete=models.CASCADE
+    )
+    duration = models.IntegerField()
+
+
+class UserRoutePoint(BaseUserRouteDatePoint):
     type = "point"
     point = models.ForeignKey("BasePoint", on_delete=models.CASCADE)
+    point_type = models.CharField(max_length=250)
+
+    def get_json(self):
+        return {
+            "type": "point",
+            "duration": self.duration,
+            "point": self.point.oid,
+            "point_name": self.point.title,
+            "point_type": self.point_type,
+        }
 
 
-class UserRouteTransaction(BaseUserRoutePoint):
+class UserRouteTransaction(BaseUserRouteDatePoint):
     type = "transition"
-    point_from = models.ForeignKey(
-        "BasePoint", related_name="user_route_point_from", on_delete=models.CASCADE
-    )
-    point_to = models.ForeignKey(
-        "BasePoint", related_name="user_route_point_to", on_delete=models.CASCADE
-    )
     distance = models.FloatField()
+
+    def get_json(self):
+        return {
+            "type": "transition",
+            "duration": self.duration,
+            "distance": self.distance,
+        }
