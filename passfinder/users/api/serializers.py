@@ -3,7 +3,6 @@ from rest_framework import serializers
 from rest_framework.generics import get_object_or_404
 
 from passfinder.events.models import BasePoint
-from passfinder.users.clickhouse_models import UserPreferenceClickHouse
 from passfinder.users.models import UserPreference
 
 User = get_user_model()

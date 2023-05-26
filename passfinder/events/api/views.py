@@ -1,4 +1,10 @@
-from rest_framework.generics import GenericAPIView, ListAPIView, get_object_or_404
+from rest_framework.generics import (
+    GenericAPIView,
+    ListAPIView,
+    get_object_or_404,
+    RetrieveAPIView,
+)
+from rest_framework.exceptions import MethodNotAllowed
 from rest_framework.response import Response
 from drf_spectacular.utils import extend_schema
 from django.db.models import Count
@@ -15,6 +21,8 @@ from passfinder.events.api.serializers import (
     RouteInputSerializer,
     CitySerializer,
     InputRouteSerializer,
+    ListUserRouteSerializer,
+    UserRouteSerializer,
 )
 from passfinder.events.models import (
     BasePoint,
@@ -23,6 +31,7 @@ from passfinder.events.models import (
     UserRoute,
     UserRoutePoint,
     UserRouteTransaction,
+    UserRouteDate,
 )
 
 
@@ -99,7 +108,7 @@ class ListCityApiView(ListAPIView):
     )
 
 
-class SaveRouteSerializer(GenericAPIView):
+class SaveRouteApiView(GenericAPIView):
     serializer_class = InputRouteSerializer
 
     def post(self, request, *args, **kwargs):
@@ -107,16 +116,37 @@ class SaveRouteSerializer(GenericAPIView):
         serializer.is_valid(raise_exception=True)
         data = serializer.data
         route = UserRoute.objects.create(user=self.request.user)
-        for point in data["points"]:
-            if point["type"] == "point":
-                UserRoutePoint.objects.create(
-                    route=route, point=BasePoint.objects.get(oid=point["point"])
-                )
-            else:
-                UserRouteTransaction.objects.create(
-                    route=route,
-                    point_from=BasePoint.objects.get(oid=point["point_from"]),
-                    point_to=BasePoint.objects.get(oid=point["point_to"]),
-                )
+        for date in data["dates"]:
+            date_obj = UserRouteDate.objects.create(date=date["date"], route=route)
+            for point in date["points"]:
+                if point["type"] == "point":
+                    UserRoutePoint.objects.create(
+                        date=date_obj,
+                        duration=point["duration"],
+                        point=BasePoint.objects.get(oid=point["point"]),
+                    )
+                else:
+                    UserRouteTransaction.objects.create(
+                        date=date_obj,
+                        duration=point["duration"],
+                        distance=point["distance"],
+                    )
 
         return Response(data=data)
+
+
+class ListUserFavoriteRoutes(ListAPIView):
+    serializer_class = ListUserRouteSerializer
+
+    def get_queryset(self):
+        return UserRoute.objects.filter(user=self.request.user)
+
+
+class RetrieveRoute(RetrieveAPIView):
+    serializer_class = UserRouteSerializer
+
+    def get_object(self):
+        route = get_object_or_404(UserRoute, pk=self.kwargs["pk"])
+        if route.user != self.request.user:
+            raise MethodNotAllowed
+        return route
