@@ -111,6 +111,7 @@ class BasePoint(OIDModel, PolymorphicModel):
     lon = models.FloatField(default=0, db_index=True)
     can_buy = models.BooleanField(default=True)
     priority = models.BooleanField(default=False)
+    price = models.IntegerField(null=True)
 
     @property
     @extend_schema_field(
