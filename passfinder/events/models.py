@@ -156,6 +156,13 @@ class Event(BasePoint):
         kino = "movie", "кино"
         concert = "concert", "концерт"
         spektatli = "plays", "спектакли"
+        artwork = "artwork", "произведение искусства"
+        shop = "shop", "торговый центр"
+        gallery = "gallery", "галерея"
+        theme_park = "theme_park", "тематический парк"
+        viewpoint = "viewpoint", "обзорная точка"
+        zoo = "zoo", "зоопарк"
+        other = "other", "другое"
 
     address = models.CharField(max_length=250, null=True)
     payment_method = models.CharField(max_length=250, null=True, blank=True)
@@ -206,7 +213,18 @@ class HotelPhone(models.Model):
 
 
 class Restaurant(BasePoint):
-    address = models.CharField(max_length=250)
+    class RestaurantType(models.TextChoices):
+        restaurant = "restaurant", "ресторан"
+        bar = "bar", "бар"
+        cafe = "cafe", "кафе"
+
+    type = models.CharField(
+        db_index=True,
+        default=RestaurantType.restaurant,
+        choices=RestaurantType.choices,
+        max_length=count_max_length(RestaurantType),
+    )
+    address = models.CharField(max_length=250, blank=True, null=True)
     bill = models.IntegerField(null=True)
     can_reserve = models.BooleanField(default=True)
     avg_time_visit = models.IntegerField(null=True)
