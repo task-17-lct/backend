@@ -1,6 +1,6 @@
 import json
 
-with open("data/osm/artwork.json") as f:
+with open("data/osm/gallery.json") as f:
     data = json.load(f)
 
 
@@ -13,7 +13,7 @@ for el in data["elements"]:
             del info["tourism"]
         res = {
             "title": info["name:ru"] if "name:ru" in info else info["name"],
-            "type": "artwork",
+            "type": "gallery",
             "parser_source": "openstreetmap.org",
             "lat": el["lat"],
             "lon": el["lon"],
@@ -46,5 +46,5 @@ for el in data["elements"]:
         ress.append(res)
 
 
-def get_artwork():
+def get_gallery():
     return ress
