@@ -59,72 +59,67 @@ class BuildRouteApiView(GenericAPIView):
         request=RouteInputSerializer, responses={200: RouteSerializer(many=True)}
     )
     def post(self, request):
-        movement_mapping = {
-            'walk': 3.0,
-            'bike': 15.0,
-            'scooter': 30.0,
-            'auto': 50.0
-        }
+        movement_mapping = {"walk": 3.0, "bike": 15.0, "scooter": 30.0, "auto": 50.0}
         serializer = RouteInputSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         data = serializer.data
         city_id = data["city"]
         try:
-            start_date = datetime.strptime(data['date_from'], '%Y-%m-%d')
+            start_date = datetime.strptime(data["date_from"], "%Y-%m-%d")
         except:
             start_date = None
-            
+
         try:
-            end_date = datetime.strptime(data['date_to'], '%Y-%m-%d')
+            end_date = datetime.strptime(data["date_to"], "%Y-%m-%d")
         except:
             end_date = None
 
         try:
-            movement = data['movement']
+            movement = data["movement"]
         except KeyError:
-            movement = 'walk'
+            movement = "walk"
 
-        hotel_stars = data['stars']
+        hotel_stars = data["stars"]
         if hotel_stars is None:
             hotel_stars = []
 
-        hotel_type = data['where_stay']
+        hotel_type = data["where_stay"]
         if hotel_type is None:
-            hotel_type = ['hotel']
+            hotel_type = ["hotel"]
 
-        where_eat = data['where_eat']
+        where_eat = data["where_eat"]
         if where_eat is None:
-            where_eat = ['restaurant', 'bar', 'cafe']
+            where_eat = ["restaurant", "bar", "cafe"]
 
-        what_to_see = data['what_to_see']
+        what_to_see = data["what_to_see"]
         if what_to_see is None:
             what_to_see = [
-                'attractions',
-                'museum',
-                'movie',
-                'concert',
-                'artwork',
-                'plays',
-                'shop',
-                'gallery',
-                'theme_park',
-                'viewpoint',
-                'zoo'
+                "attractions",
+                "museum",
+                "movie",
+                "concert",
+                "artwork",
+                "plays",
+                "shop",
+                "gallery",
+                "theme_park",
+                "viewpoint",
+                "zoo",
             ]
 
-        if 'hotel' not in hotel_type:
+        if "hotel" not in hotel_type:
             hotel_stars = []
-
-        region = None
-        
         res = []
 
         for _ in range(5):
-
             if city_id:
                 region = get_object_or_404(City, oid=city_id)
             else:
-                region = choice(City.objects.annotate(points_count=Count('points')).filter(title__in=city_in_hotels).filter(points_count__gt=400))
+                region = choice(
+                    City.objects.annotate(points_count=Count("points"))
+                    .filter(title__in=city_in_hotels)
+                    .filter(points_count__gt=400)
+                )
             if not start_date and end_date:
                 tour_length = choice([timedelta(days=i) for i in range(1, 4)])
                 start_date = end_date - tour_length
@@ -137,25 +132,25 @@ class BuildRouteApiView(GenericAPIView):
                 tour_length = choice([timedelta(days=i) for i in range(1, 4)])
                 end_date = start_date + tour_length
 
-            print(request.user, region, start_date, end_date)
-
             tour = generate_tour(
-                request.user, 
-                region, 
-                start_date, 
-                end_date, 
+                request.user,
+                region,
+                start_date,
+                end_date,
                 avg_velocity=movement_mapping[movement],
                 stars=hotel_stars,
                 hotel_type=hotel_type,
                 where_eat=where_eat,
-                what_to_see=what_to_see
+                what_to_see=what_to_see,
             )
-            res.append({
-                'city': region.title,
-                'date_from': start_date,
-                'date_to': end_date,
-                'path': tour[0]
-            })
+            res.append(
+                {
+                    "city": region.title,
+                    "date_from": start_date,
+                    "date_to": end_date,
+                    "path": tour[0],
+                }
+            )
 
         return Response(data=res)
 
@@ -168,7 +163,10 @@ class ListRegionApiView(ListAPIView):
 class ListCityApiView(ListAPIView):
     serializer_class = CitySerializer
     queryset = (
-        City.objects.annotate(points_count=Count('points')).filter(title__in=city_in_hotels).filter(points_count__gt=200).order_by('title')
+        City.objects.annotate(points_count=Count("points"))
+        .filter(title__in=city_in_hotels)
+        .filter(points_count__gt=200)
+        .order_by("title")
     )
 
 

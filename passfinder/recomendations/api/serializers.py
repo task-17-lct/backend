@@ -1,5 +1,9 @@
 from rest_framework import serializers
-from passfinder.events.api.serializers import EventSerializer, HotelSerializer, ObjectRouteSerializer
+from passfinder.events.api.serializers import (
+    EventSerializer,
+    HotelSerializer,
+    ObjectRouteSerializer,
+)
 
 
 class TinderProceedSerializer(serializers.Serializer):
@@ -27,12 +31,16 @@ class HotelOnboardingRetrieve(serializers.Serializer):
 
 
 class TinderGetEventFilterSerializer(serializers.Serializer):
-    type = serializers.ListField(child=serializers.ChoiceField(['attraction', 'museum', 'movie', 'play', 'concert']))
+    type = serializers.ListField(
+        child=serializers.ChoiceField(
+            ["attraction", "museum", "movie", "play", "concert"]
+        )
+    )
     event = EventSerializer()
 
 
 class DailySelectionNodeSerializer(serializers.Serializer):
-    action = serializers.ChoiceField(['left', 'right'])
+    action = serializers.ChoiceField(["left", "right"])
     oid = serializers.CharField()
 
 
@@ -56,15 +64,28 @@ class StarSelectionSerializer(serializers.Serializer):
 
 
 class CategorySelectionSerializer(serializers.Serializer):
-    categories = serializers.ListField(child=serializers.ChoiceField(
-        ['attractions', 'museum', 'movie', 'concert', 'artwork', 'plays', 'shop', 'gallery', 'theme_park', 'viewpoint', 'zoo']
-    ))
+    categories = serializers.ListField(
+        child=serializers.ChoiceField(
+            [
+                "attractions",
+                "museum",
+                "movie",
+                "concert",
+                "artwork",
+                "plays",
+                "shop",
+                "gallery",
+                "theme_park",
+                "viewpoint",
+                "zoo",
+            ]
+        )
+    )
 
 
 class RecomendationNode(serializers.Serializer):
     category = serializers.CharField()
     events = serializers.ListField(child=ObjectRouteSerializer())
-
 
 
 class SelfRecomendationSerializer(serializers.Serializer):

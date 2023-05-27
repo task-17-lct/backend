@@ -72,41 +72,39 @@ class RouteInputSerializer(serializers.Serializer):
         child=serializers.ChoiceField([1, 2, 3, 4, 5]),
         required=False,
         allow_empty=True,
-        allow_null=True
+        allow_null=True,
     )
     what_to_see = serializers.ListField(
         child=serializers.ChoiceField(
             [
-                'attractions',
-                'museum',
-                'movie',
-                'concert',
-                'artwork',
-                'plays',
-                'shop',
-                'gallery',
-                'theme_park',
-                'viewpoint',
-                'zoo'
+                "attractions",
+                "museum",
+                "movie",
+                "concert",
+                "artwork",
+                "plays",
+                "shop",
+                "gallery",
+                "theme_park",
+                "viewpoint",
+                "zoo",
             ]
         ),
         required=False,
         allow_empty=True,
-        allow_null=True
+        allow_null=True,
     )
     where_stay = serializers.ListField(
-        child=serializers.ChoiceField([
-            'hotel', 'apartment', 'hostel'
-        ]),
+        child=serializers.ChoiceField(["hotel", "apartment", "hostel"]),
         required=False,
         allow_empty=True,
-        allow_null=True
+        allow_null=True,
     )
     where_eat = serializers.ListField(
-        child=serializers.ChoiceField(['restaurant', 'bar', 'cafe']),
+        child=serializers.ChoiceField(["restaurant", "bar", "cafe"]),
         required=False,
         allow_empty=True,
-        allow_null=True
+        allow_null=True,
     )
     with_kids = serializers.BooleanField(required=False, allow_null=True)
     with_animals = serializers.BooleanField(required=False, allow_null=True)

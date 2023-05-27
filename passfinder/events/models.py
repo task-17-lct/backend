@@ -277,7 +277,7 @@ class UserRoutePoint(BaseUserRouteDatePoint):
                 "lon": self.point.lon,
                 "title": self.point.title,
                 "description": self.point.description,
-                "oid": self.point.oid
+                "oid": self.point.oid,
             },
             "point_type": self.point_type,
             "time": self.duration,
