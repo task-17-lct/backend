@@ -272,10 +272,15 @@ class UserRoutePoint(BaseUserRouteDatePoint):
     def get_json(self):
         return {
             "type": "point",
-            "duration": self.duration,
-            "point": self.point.oid,
-            "point_name": self.point.title,
+            "point": {
+                "lat": self.point.lat,
+                "lon": self.point.lon,
+                "title": self.point.title,
+                "description": self.point.description,
+                "oid": self.point.oid
+            },
             "point_type": self.point_type,
+            "time": self.duration,
         }
 
 
@@ -286,6 +291,6 @@ class UserRouteTransaction(BaseUserRouteDatePoint):
     def get_json(self):
         return {
             "type": "transition",
-            "duration": self.duration,
             "distance": self.distance,
+            "time": self.duration,
         }

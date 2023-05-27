@@ -64,7 +64,10 @@ class RouteInputSerializer(serializers.Serializer):
     city = serializers.CharField(
         min_length=24, max_length=24, required=False, allow_blank=True, allow_null=True
     )
-    movement = serializers.ChoiceField(['walk', 'bike', 'scooter', 'auto'], required=False, allow_blank=True)
+    movement = serializers.ChoiceField(
+        ["walk", "bike", "scooter", "auto"], required=False, allow_blank=True
+    )
+
     stars = serializers.ListField(
         child=serializers.ChoiceField([1, 2, 3, 4, 5]),
         required=False,
@@ -72,18 +75,18 @@ class RouteInputSerializer(serializers.Serializer):
         allow_null=True
     )
     what_to_see = serializers.ListField(
-        child=serializers.ChoiceField(        
+        child=serializers.ChoiceField(
             [
-                'attractions', 
-                'museum', 
-                'movie', 
-                'concert', 
-                'artwork', 
-                'plays', 
-                'shop', 
-                'gallery', 
-                'theme_park', 
-                'viewpoint', 
+                'attractions',
+                'museum',
+                'movie',
+                'concert',
+                'artwork',
+                'plays',
+                'shop',
+                'gallery',
+                'theme_park',
+                'viewpoint',
                 'zoo'
             ]
         ),
@@ -123,42 +126,49 @@ class RegionSerializer(serializers.ModelSerializer):
         fields = ["oid", "title", "description_short", "cities"]
 
 
+class InputPointJSONSerializer(serializers.Serializer):
+    oid = serializers.CharField(min_length=24, max_length=24)
+
+
 class InputRoutePointSerializer(serializers.Serializer):
     type = serializers.ChoiceField(choices=["point", "transition"])
-    duration = serializers.IntegerField(min_value=0, required=True)
+    time = serializers.IntegerField(min_value=0, required=True)
 
     # point
-    point = serializers.CharField(
-        min_length=24, max_length=24, required=False, allow_blank=True, allow_null=True
-    )
+    point = InputPointJSONSerializer(required=False, allow_null=True)
     point_type = serializers.CharField(
         required=False, allow_blank=True, allow_null=True
     )
 
     # transition
-    distance = serializers.FloatField(min_value=0, required=False, allow_null=True)
+    distance = serializers.FloatField(required=False, allow_null=True)
 
     def validate(self, data):
         if data["type"] == "point":
-            if "point" not in data or not data["point"]:
+            if (
+                "point" not in data
+                or not data["point"]
+                or "oid" not in data["point"]
+                or not data["point"]["oid"]
+            ):
                 raise serializers.ValidationError("Point id is required")
-            get_object_or_404(BasePoint, oid=data["point"])
-            if "distance" not in data or not data["point_type"]:
+            get_object_or_404(BasePoint, oid=data["point"]["oid"])
+            if "point_type" not in data or not data["point_type"]:
                 raise serializers.ValidationError("Point type is required")
         else:
-            if "distance" not in data or not data["distance"]:
+            if "distance" not in data:
                 raise serializers.ValidationError("Distance is required")
 
         return data
 
 
 class InputRouteDateSerializer(serializers.Serializer):
-    date = serializers.DateField()
-    points = serializers.ListSerializer(child=InputRoutePointSerializer())
+    date = serializers.DateTimeField()
+    paths = serializers.ListSerializer(child=InputRoutePointSerializer())
 
 
 class InputRouteSerializer(serializers.Serializer):
-    dates = serializers.ListSerializer(child=InputRouteDateSerializer())
+    points = serializers.ListSerializer(child=InputRouteDateSerializer())
 
 
 class ListUserRouteSerializer(serializers.ModelSerializer):
@@ -168,7 +178,7 @@ class ListUserRouteSerializer(serializers.ModelSerializer):
 
 
 class UserRouteDateSerializer(serializers.ModelSerializer):
-    points = serializers.SerializerMethodField(method_name="get_points")
+    paths = serializers.SerializerMethodField(method_name="get_points")
 
     @extend_schema_field(InputRoutePointSerializer)
     def get_points(self, obj):
@@ -176,13 +186,15 @@ class UserRouteDateSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = UserRouteDate
-        fields = ["date", "points"]
+        fields = ["date", "paths"]
 
 
 class UserRouteSerializer(serializers.ModelSerializer):
+    points = UserRouteDateSerializer(many=True, source="dates")
+
     class Meta:
         model = UserRoute
-        fields = ["created", "dates"]
+        fields = ["created", "points"]
 
 
 class RestaurantSerializer(serializers.ModelSerializer):

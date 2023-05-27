@@ -1,3 +1,4 @@
+from django.utils.dateparse import parse_datetime
 from rest_framework.generics import (
     GenericAPIView,
     ListAPIView,
@@ -70,51 +71,50 @@ class BuildRouteApiView(GenericAPIView):
         city_id = data["city"]
         start_date = datetime.strptime(data['date_from'], '%Y-%m-%d')
         end_date = datetime.strptime(data['date_to'], '%Y-%m-%d')
-        
+
         try:
             movement = data['movement']
         except KeyError:
             movement = 'walk'
-        
+
         hotel_stars = data['stars']
         if hotel_stars is None:
             hotel_stars = []
 
-        
         hotel_type = data['where_stay']
         if hotel_type is None:
             hotel_type = ['hotel']
-            
+
         where_eat = data['where_eat']
         if where_eat is None:
             where_eat = ['restaurant', 'bar', 'cafe']
-        
+
         what_to_see = data['what_to_see']
         if what_to_see is None:
             what_to_see = [
-                'attractions', 
-                'museum', 
-                'movie', 
-                'concert', 
-                'artwork', 
-                'plays', 
-                'shop', 
-                'gallery', 
-                'theme_park', 
-                'viewpoint', 
+                'attractions',
+                'museum',
+                'movie',
+                'concert',
+                'artwork',
+                'plays',
+                'shop',
+                'gallery',
+                'theme_park',
+                'viewpoint',
                 'zoo'
             ]
 
-        
         if 'hotel' not in hotel_type:
             hotel_stars = []
 
         region = None
-        
+
         if city_id:
             region = get_object_or_404(City, oid=city_id)
         else:
-            region = choice(City.objects.annotate(points_count=Count('points')).filter(title__in=city_in_hotels).filter(points_count__gt=400))
+            region = choice(City.objects.annotate(points_count=Count('points')).filter(title__in=city_in_hotels).filter(
+                points_count__gt=400))
         if not start_date and end_date:
             tour_length = choice([timedelta(days=i) for i in range(1, 4)])
             start_date = end_date - tour_length
@@ -130,10 +130,10 @@ class BuildRouteApiView(GenericAPIView):
         print(request.user, region, start_date, end_date)
 
         tour = generate_tour(
-            request.user, 
-            region, 
-            start_date, 
-            end_date, 
+            request.user,
+            region,
+            start_date,
+            end_date,
             avg_velocity=movement_mapping[movement],
             stars=hotel_stars,
             hotel_type=hotel_type,
@@ -165,19 +165,21 @@ class SaveRouteApiView(GenericAPIView):
         serializer.is_valid(raise_exception=True)
         data = serializer.data
         route = UserRoute.objects.create(user=self.request.user)
-        for date in data["dates"]:
-            date_obj = UserRouteDate.objects.create(date=date["date"], route=route)
-            for point in date["points"]:
+        for date in data["points"]:
+            date_obj = UserRouteDate.objects.create(
+                date=parse_datetime(date["date"]).date(), route=route
+            )
+            for point in date["paths"]:
                 if point["type"] == "point":
                     UserRoutePoint.objects.create(
                         date=date_obj,
-                        duration=point["duration"],
-                        point=BasePoint.objects.get(oid=point["point"]),
+                        duration=point["time"],
+                        point=BasePoint.objects.get(oid=point["point"]["oid"]),
                     )
                 else:
                     UserRouteTransaction.objects.create(
                         date=date_obj,
-                        duration=point["duration"],
+                        duration=point["time"],
                         distance=point["distance"],
                     )
 
