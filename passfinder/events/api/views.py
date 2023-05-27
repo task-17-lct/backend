@@ -64,7 +64,6 @@ class BuildRouteApiView(GenericAPIView):
             'scooter': 30.0,
             'auto': 50.0
         }
-
         serializer = RouteInputSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         data = serializer.data

@@ -155,5 +155,3 @@ class ObjectRouteSerializer(serializers.Serializer):
     title = serializers.CharField()
     description = serializers.CharField()
     oid = serializers.CharField()
-
-

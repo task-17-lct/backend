@@ -2,7 +2,12 @@ from annoy import AnnoyIndex
 from .mapping.mapping import *
 from .models.models import *
 from passfinder.events.models import Event, Region, Hotel, BasePoint, City, Restaurant
-from passfinder.events.api.serializers import HotelSerializer, EventSerializer, ObjectRouteSerializer
+from passfinder.events.api.serializers import (
+    HotelSerializer,
+    EventSerializer,
+    RestaurantSerializer,
+    ObjectRouteSerializer,
+)
 from passfinder.recomendations.models import *
 from random import choice, sample
 from collections import Counter
@@ -262,6 +267,7 @@ def dist_func(event1: Event, event2: Event):
     except:
         return 1000000
     #return (event1.lon - event2.lon) ** 2 + (event1.lat - event2.lat) ** 2
+    # return (event1.lon - event2.lon) ** 2 + (event1.lat - event2.lat) ** 2
 
 
 def generate_nearest():
@@ -317,7 +323,7 @@ def generate_nearest_restaurants():
         nr.save()
         if i % 10 == 0:
             print(i)
-    
+
     for i, hotel in enumerate(Hotel.objects.all()):
         sorted_rests = list(sorted(rests.copy(), key=lambda x: dist_func(x, hotel)))
         nr = NearestRestaurantToHotel.objects.create(hotel=hotel)
@@ -327,7 +333,6 @@ def generate_nearest_restaurants():
             print(i)
 
 
-
 def match_points():
     regions = list(City.objects.all())
     for i, point in enumerate(Event.objects.all()):
@@ -335,8 +340,7 @@ def match_points():
         point.city = s_regions[0]
         point.save()
         if i % 10 == 0:
-            print(i)
-    
+            print(i)    
     for i, point in enumerate(Hotel.objects.all()):
         s_regions = list(sorted(regions.copy(), key=lambda x: dist_func(point, x)))
         point.city = s_regions[0]
@@ -423,6 +427,15 @@ def time_func(km_distance: float, velocity: float):
 def generate_route(point1: BasePoint, point2: BasePoint, velocity: float):
     distance = dist_func(point1, point2)
     time = time_func(distance, velocity)
+
+
+def time_func(km_distance: float):
+    return timedelta(minutes=(km_distance) / (4.0 / 60))
+
+
+def generate_route(point1: BasePoint, point2: BasePoint):
+    distance = dist_func(point1, point2)
+    time = time_func(distance)
     return {
         "type": "transition",
         "distance": distance,
@@ -442,7 +455,7 @@ def generate_point(point: BasePoint):
 
 def generate_restaurant(point: BasePoint):
     rest_data = ObjectRouteSerializer(point).data
-    
+
     return {
         "type": "point",
         "point": rest_data,
@@ -474,7 +487,6 @@ def generate_tour(user: User, city: City, start_date: datetime.date, end_date: d
         )
         disallowed_rest = local_disallowed_rest
         current_date += timedelta(days=1)
-    
     return paths, points
 
 
@@ -523,7 +535,6 @@ def generate_path(user: User, disallowed_points: Iterable[BasePoint], hotel: Hot
 
     how_many_eat = 1
 
-
     while start_time.hour < 22 and start_time.day == datetime.now().day:
         if (start_time.hour > 14 and how_many_eat == 1) or (start_time.hour > 20 and how_many_eat == 2):
             point = NearestRestaurantToEvent.objects.filter(event=points[-1]).first().restaurants.filter(~Q(oid__in=disallowed_rests))[0]
@@ -555,6 +566,7 @@ def generate_path(user: User, disallowed_points: Iterable[BasePoint], hotel: Hot
             points.append(get_nearest_favorite(candidates, user, points[-1], points))
 
         transition_route = generate_route(points[-1], points[-2], avg_velocity)
+
         start_time += timedelta(seconds=transition_route["time"])
 
         point_route = generate_point(points[-1])
@@ -571,10 +583,23 @@ def calculate_distance(sample1: Event, samples: Iterable[Event], model: AnnoyInd
         metrics.append(model.get_distance(rev_mapping[sample1.oid], rev_mapping[sample.oid]))
     
     return sum(metrics) / len(metrics)
-    
+
+
+def calculate_distance(
+    sample1: Event, samples: Iterable[Event], model: AnnoyIndex, rev_mapping
+):
+    metrics = []
+
+    for sample in samples:
+        metrics.append(
+            model.get_distance(rev_mapping[sample1.oid], rev_mapping[sample.oid])
+        )
+
+    return sum(metrics) / len(metrics)
+
 
 def get_onboarding_attractions():
-    sample_attractions = sample(list(Event.objects.filter(type='attraction')), 200)
+    sample_attractions = sample(list(Event.objects.filter(type="attraction")), 200)
     first_attraction = choice(sample_attractions)
 
     attractions = [first_attraction]

@@ -15,7 +15,6 @@ from django.db.models import Count
 from random import sample
 
 
-
 class TinderView(viewsets.GenericViewSet):
     serializer_class = EventSerializer
     model = Event
@@ -75,6 +74,7 @@ class PersonalRecommendation(viewsets.GenericViewSet):
         for rec in recs:
             ans.append(EventSerializer(rec[1]).data)
         return Response(ans, 200)
+
     
     @action(methods=['GET'], detail=True)
     def get_nearest_user_distance(self, request, pk, *args, **kwargs):
@@ -126,7 +126,6 @@ class PersonalRecommendation(viewsets.GenericViewSet):
                 'path': path
             }
         )
-
 
 class OnboardingViewset(viewsets.GenericViewSet):
     serializer_class = EventSerializer

@@ -27,6 +27,7 @@ class HotelOnboardingRetrieve(serializers.Serializer):
 
 
 class TinderGetEventFilterSerializer(serializers.Serializer):
+<<<<<<< HEAD
     type = serializers.ListField(child=serializers.ChoiceField(['attraction', 'museum', 'movie', 'play', 'concert']))
     event = EventSerializer()
 
@@ -43,6 +44,8 @@ class DailySelectionSerializerInput(serializers.Serializer):
 
 class DailySelectionSerializer(serializers.Serializer):
     nodes = serializers.ListField(child=DailySelectionNodeSerializer(), write_only=True)
+=======
+>>>>>>> 60a019fcf7e95a63e66b6b0fcbf1495da8a3e8b7
     type = serializers.ListField(
         child=serializers.ChoiceField(
             ["attraction", "museum", "movie", "play", "concert"]
