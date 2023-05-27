@@ -111,38 +111,47 @@ class BuildRouteApiView(GenericAPIView):
 
         region = None
         
-        if city_id:
-            region = get_object_or_404(City, oid=city_id)
-        else:
-            region = choice(City.objects.annotate(points_count=Count('points')).filter(title__in=city_in_hotels).filter(points_count__gt=400))
-        if not start_date and end_date:
-            tour_length = choice([timedelta(days=i) for i in range(1, 4)])
-            start_date = end_date - tour_length
-        if not end_date and start_date:
-            tour_length = choice([timedelta(days=i) for i in range(1, 4)])
-            end_date = end_date + tour_length
-        if not end_date and not start_date:
-            max_date = datetime.now() + timedelta(days=15)
-            start_date = choice([max_date - timedelta(days=i) for i in range(1, 5)])
-            tour_length = choice([timedelta(days=i) for i in range(1, 4)])
-            end_date = start_date + tour_length
+        res = []
 
-        print(request.user, region, start_date, end_date)
+        for _ in range(5):
 
-        tour = generate_tour(
-            request.user, 
-            region, 
-            start_date, 
-            end_date, 
-            avg_velocity=movement_mapping[movement],
-            stars=hotel_stars,
-            hotel_type=hotel_type,
-            where_eat=where_eat,
-            what_to_see=what_to_see
-        )
-        print(len(tour[1]))
+            if city_id:
+                region = get_object_or_404(City, oid=city_id)
+            else:
+                region = choice(City.objects.annotate(points_count=Count('points')).filter(title__in=city_in_hotels).filter(points_count__gt=400))
+            if not start_date and end_date:
+                tour_length = choice([timedelta(days=i) for i in range(1, 4)])
+                start_date = end_date - tour_length
+            if not end_date and start_date:
+                tour_length = choice([timedelta(days=i) for i in range(1, 4)])
+                end_date = end_date + tour_length
+            if not end_date and not start_date:
+                max_date = datetime.now() + timedelta(days=15)
+                start_date = choice([max_date - timedelta(days=i) for i in range(1, 5)])
+                tour_length = choice([timedelta(days=i) for i in range(1, 4)])
+                end_date = start_date + tour_length
 
-        return Response(data=tour[0])
+            print(request.user, region, start_date, end_date)
+
+            tour = generate_tour(
+                request.user, 
+                region, 
+                start_date, 
+                end_date, 
+                avg_velocity=movement_mapping[movement],
+                stars=hotel_stars,
+                hotel_type=hotel_type,
+                where_eat=where_eat,
+                what_to_see=what_to_see
+            )
+            res.append({
+                'city': region.title,
+                'date_from': start_date,
+                'date_to': end_date,
+                'path': tour[0]
+            })
+
+        return Response(data=res)
 
 
 class ListRegionApiView(ListAPIView):
