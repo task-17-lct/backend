@@ -75,6 +75,40 @@ class BuildRouteApiView(GenericAPIView):
             movement = data['movement']
         except KeyError:
             movement = 'walk'
+        
+        hotel_stars = data['stars']
+        if hotel_stars is None:
+            hotel_stars = []
+
+        
+        hotel_type = data['where_stay']
+        if hotel_type is None:
+            hotel_type = ['hotel']
+            
+        where_eat = data['where_eat']
+        if where_eat is None:
+            where_eat = ['restaurant', 'bar', 'cafe']
+        
+        what_to_see = data['what_to_see']
+        if what_to_see is None:
+            what_to_see = [
+                'attractions', 
+                'museum', 
+                'movie', 
+                'concert', 
+                'artwork', 
+                'plays', 
+                'shop', 
+                'gallery', 
+                'theme_park', 
+                'viewpoint', 
+                'zoo'
+            ]
+
+        
+        if 'hotel' not in hotel_type:
+            hotel_stars = []
+
         region = None
         
         if city_id:
@@ -95,7 +129,17 @@ class BuildRouteApiView(GenericAPIView):
 
         print(request.user, region, start_date, end_date)
 
-        tour = generate_tour(request.user, region, start_date, end_date, movement_mapping[movement])
+        tour = generate_tour(
+            request.user, 
+            region, 
+            start_date, 
+            end_date, 
+            avg_velocity=movement_mapping[movement],
+            stars=hotel_stars,
+            hotel_type=hotel_type,
+            where_eat=where_eat,
+            what_to_see=what_to_see
+        )
         print(len(tour[1]))
 
         return Response(data=tour[0])
@@ -109,9 +153,7 @@ class ListRegionApiView(ListAPIView):
 class ListCityApiView(ListAPIView):
     serializer_class = CitySerializer
     queryset = (
-        City.objects.annotate(points_num=Count("points"))
-        .filter(points_num__gte=100)
-        .order_by("title")
+        City.objects.annotate(points_count=Count('points')).filter(title__in=city_in_hotels).filter(points_count__gt=200).order_by('title')
     )
 
 
