@@ -7,6 +7,7 @@ from pathlib import Path
 
 import environ
 import structlog
+from celery.schedules import crontab
 from urllib3.connectionpool import InsecureRequestWarning
 
 ROOT_DIR = Path(__file__).resolve(strict=True).parent.parent.parent
@@ -302,6 +303,18 @@ CELERY_BEAT_SCHEDULE = {
         "schedule": timedelta(seconds=5),
         "options": {"expires": 1},
     },
+    "check_temperature": {
+        "task": "passfinder.events.tasks.check_temperature",
+        "schedule": crontab(
+            minute="0", hour="3", day_of_week="*", day_of_month="*", month_of_year="*"
+        ),
+    },
+    "precalculate_nearest_points": {
+        "task": "passfinder.recomendations.tasks.run_precalc",
+        "schedule": crontab(
+            minute="0", hour="7", day_of_week="*", day_of_month="*", month_of_year="*"
+        ),
+    },
 }
 # DRF
 # -------------------------------------------------------------------------------
@@ -363,3 +376,6 @@ CLICKHOUSE_REDIS_CONFIG = {
     "password": env("CLICKHOUSE_REDIS_PASSWORD", default=None),
     "socket_timeout": 10,
 }
+
+
+YANDEX_TOKEN = env("YANDEX_TOKEN", default="")

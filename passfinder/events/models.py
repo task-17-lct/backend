@@ -42,6 +42,8 @@ class City(OIDModel):
     )
     lon = models.FloatField(default=0, db_index=True)
     lat = models.FloatField(default=0, db_index=True)
+    weather_condition = models.CharField(default="clear", max_length=250)
+    temperature = models.IntegerField(default=20)
 
     @property
     def location(self):
