@@ -482,7 +482,8 @@ def generate_point(point: BasePoint):
         "type": "point",
         "point": event_data,
         "point_type": "point",
-        "time": timedelta(minutes=90+choice(range(-10, 90, 10))).seconds
+        "time": timedelta(minutes=90+choice(range(-10, 90, 10))).seconds,
+        "distance": 0
     }
 
 
@@ -555,6 +556,8 @@ def generate_hotel(hotel: Hotel):
         "type": "point",
         "point": hotel_data,
         "point_type": "hotel",
+        "time": 0,
+        "distance": 0
     }
 
 
