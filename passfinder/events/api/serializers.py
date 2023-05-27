@@ -66,7 +66,6 @@ class RouteInputSerializer(serializers.Serializer):
     )
     movement = serializers.ChoiceField(['walk', 'bike', 'scooter', 'auto'], required=False, allow_blank=True)
 
-
 class CitySerializer(serializers.ModelSerializer):
     class Meta:
         model = City
