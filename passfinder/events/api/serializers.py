@@ -65,6 +65,49 @@ class RouteInputSerializer(serializers.Serializer):
         min_length=24, max_length=24, required=False, allow_blank=True, allow_null=True
     )
     movement = serializers.ChoiceField(['walk', 'bike', 'scooter', 'auto'], required=False, allow_blank=True)
+    stars = serializers.ListField(
+        child=serializers.ChoiceField([1, 2, 3, 4, 5]),
+        required=False,
+        allow_empty=True,
+        allow_null=True
+    )
+    what_to_see = serializers.ListField(
+        child=serializers.ChoiceField(        
+            [
+                'attractions', 
+                'museum', 
+                'movie', 
+                'concert', 
+                'artwork', 
+                'plays', 
+                'shop', 
+                'gallery', 
+                'theme_park', 
+                'viewpoint', 
+                'zoo'
+            ]
+        ),
+        required=False,
+        allow_empty=True,
+        allow_null=True
+    )
+    where_stay = serializers.ListField(
+        child=serializers.ChoiceField([
+            'hotel', 'apartment', 'hostel'
+        ]),
+        required=False,
+        allow_empty=True,
+        allow_null=True
+    )
+    where_eat = serializers.ListField(
+        child=serializers.ChoiceField(['restaurant', 'bar', 'cafe']),
+        required=False,
+        allow_empty=True,
+        allow_null=True
+    )
+    with_kids = serializers.BooleanField(required=False, allow_null=True)
+    with_animals = serializers.BooleanField(required=False, allow_null=True)
+
 
 class CitySerializer(serializers.ModelSerializer):
     class Meta:

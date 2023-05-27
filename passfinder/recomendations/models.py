@@ -1,6 +1,7 @@
 from django.db import models
 from passfinder.users.models import User
 from passfinder.events.models import Event, Hotel, Restaurant
+from django.contrib.postgres.fields import ArrayField
 
 
 class UserPreferences(models.Model):
@@ -20,6 +21,9 @@ class UserPreferences(models.Model):
 
     prefferred_museums = models.ManyToManyField(Event, related_name='preffered_users_museums')
     unprefferred_museums = models.ManyToManyField(Event, related_name='unpreffered_users_museums')
+
+    preferred_categories = ArrayField(base_field=models.CharField(max_length=100), null=True, blank=True)
+    preferred_stars = ArrayField(base_field=models.IntegerField(), null=True, blank=True)
 
 
 

@@ -266,8 +266,7 @@ def dist_func(event1: Event, event2: Event):
         return dist
     except:
         return 1000000
-    #return (event1.lon - event2.lon) ** 2 + (event1.lat - event2.lat) ** 2
-    # return (event1.lon - event2.lon) ** 2 + (event1.lat - event2.lat) ** 2
+    return (event1.lon - event2.lon) ** 2 + (event1.lat - event2.lat) ** 2
 
 
 def generate_nearest():
@@ -349,6 +348,19 @@ def match_points():
             print(i)
 
 
+def match_restaurants():
+    regions = list(City.objects.all())
+
+    for i, point in enumerate(Restaurant.objects.all()):
+        s_regions = list(sorted(regions.copy(), key=lambda x: dist_func(point, x)))
+        point.city = s_regions[0]
+        
+        point.save()
+        if i % 10 == 0:
+            print(i)
+    
+
+
 def calculate_mean_metric(
     favorite_events: Iterable[Event],
     target_event: Event,
@@ -393,21 +405,50 @@ def calculate_favorite_metric(event: Event, user: User):
 def get_exponential_koef(time: timedelta):
     time = time.seconds
     if time < 60 * 10:
-        return 1
+        return 2
     if time < 60 * 20:
-        return 10
+        return 5
     if time < 60 * 30:
-        return 1000
+        return 10
     if time < 60 * 40:
-        return 100000
+        return 20
     return int(1e10)
 
 
+def get_category_similarity_coef(event, user):
+    up, _ = UserPreferences.objects.get_or_create(user=user)
+    cat = up.preferred_categories
+    if event.type in cat:
+        return 0.7
+    else:
+        return 1.2
+
+
 def get_nearest_favorite(
-    events: Iterable[Event], user: User, base_event: Event, exclude_events: Iterable[Event] = [], velocity=3.0, top_k=1
+    events: Iterable[Event], 
+    user: User, 
+    base_event: Event, 
+    exclude_events: Iterable[Event] = [], 
+    velocity=3.0, 
+    top_k=1
 ):
 
-    sorted_events = list(sorted(events, key=lambda event: calculate_favorite_metric(event, user) * get_exponential_koef(time_func(dist_func(event, base_event), velocity))))
+    sorted_events = list(
+        sorted(
+            filter(lambda event: event not in exclude_events, events), 
+            key=lambda event: 
+                calculate_favorite_metric(event, user) * 
+                get_exponential_koef(
+                    time_func(
+                        dist_func(
+                            event, base_event
+                        ), 
+                        velocity
+                    )
+                ) * 
+                get_category_similarity_coef(event, user)
+            )
+        )
 
     if top_k == 1:
         return sorted_events[0]
@@ -423,14 +464,6 @@ def filter_hotel(region: Region, user: User, stars: Iterable[int]):
 def time_func(km_distance: float, velocity: float):
     return timedelta(minutes=(km_distance) / (velocity / 60))
 
-
-def generate_route(point1: BasePoint, point2: BasePoint, velocity: float):
-    distance = dist_func(point1, point2)
-    time = time_func(distance, velocity)
-
-
-def time_func(km_distance: float, velocity):
-    return timedelta(minutes=(km_distance) / (velocity / 60))
 
 
 def generate_route(point1: BasePoint, point2: BasePoint, velocity):
@@ -470,14 +503,40 @@ def generate_multiple_tours(user: User, city: City, start_date: datetime.date, e
     return pool.map(generate_tour, [(user, start_date, end_date, hotel) for hotel in hotels])
 
 
-def generate_tour(user: User, city: City, start_date: datetime.date, end_date: datetime.date, avg_velocity=3.0):
+def generate_tour(
+        user: User, 
+        city: City, 
+        start_date: datetime.date, 
+        end_date: datetime.date, 
+        avg_velocity=3.0,
+        stars=[],
+        hotel_type=['hotel', 'hostel', 'apartment'],
+        where_eat=['restaurant', 'bar', 'cafe'],
+        what_to_see=['attractions', 'museum', 'movie', 'concert', 'artwork', 'plays', 'shop', 'gallery', 'theme_park', 'viewpoint', 'zoo']
+    ):
     UserPreferences.objects.get_or_create(user=user)
-    hotel = choice(list(Hotel.objects.filter(city=city)))
+    
+    hotels_candidates = Hotel.objects.filter(city=city)
+    if len(hotels_candidates.filter(stars__in=stars)):
+        hotels_candidates = hotels_candidates.filter(stars__in=stars)
+    
+    try:
+        hotel = choice(list(hotels_candidates))
+    except:
+        hotel = city
     current_date = start_date
     paths, points, disallowed_rest = [], [], []
 
     while current_date < end_date:
-        local_points, local_paths, local_disallowed_rest = generate_path(user, points, hotel, disallowed_rest, avg_velocity)
+        local_points, local_paths, local_disallowed_rest = generate_path(
+            user, 
+            points, 
+            hotel, 
+            disallowed_rest, 
+            avg_velocity,
+            where_eat=where_eat,
+            what_to_see=what_to_see
+        )
         points.extend(local_points)
         paths.append(
             {
@@ -514,22 +573,56 @@ def nearest_distance_points(point: BasePoint, user: User, velocity: float=3.0):
         
 
 
-def generate_path(user: User, disallowed_points: Iterable[BasePoint], hotel: Hotel, disallowed_rests: Iterable[Restaurant], avg_velocity: float):
-    # region_events = Event.objects.filter(region=region)
-
-    #candidates = NearestHotel.objects.get(hotel=hotel).nearest_events.all()
-    allowed_types = ['museum', 'attraction']
-
-    start_point = NearestRestaurantToHotel.objects.filter(hotel=hotel).first().restaurants.filter(~Q(oid__in=disallowed_rests)).first()
-    disallowed_rests.append(start_point.oid)
-    candidates =  list(filter(lambda x: x not in disallowed_points, hotel.nearest_hotel_rel.all().first().nearest_events.filter(type__in=allowed_types)))
-    #candidates = list(filter(lambda x: x.type in allowed_types, map(lambda x: x.event, start_point.nearestrestauranttoevent_set.all()[0:100])))
-    points = [start_point]
-    path = [
-        generate_hotel(hotel),
-        generate_route(start_point, hotel, avg_velocity), 
-        generate_restaurant(start_point)
+def generate_path(
+        user: User, 
+        disallowed_points: Iterable[BasePoint], 
+        hotel: Hotel, 
+        disallowed_rests: Iterable[Restaurant], 
+        avg_velocity: float,
+        where_eat=['restaurant', 'bar', 'cafe'],
+        what_to_see=['attractions', 'museum', 'movie', 'concert', 'artwork', 'plays', 'shop', 'gallery', 'theme_park', 'viewpoint', 'zoo']
+    ):
+    allowed_types = [
+        'museum', 
+        'attraction', 
+        'artwork', 
+        'shop', 
+        'gallery', 
+        'theme_park', 
+        'zoo', 
+        'other',
+        'viewpoint'
     ]
+    if len(set(allowed_types) & set(what_to_see)) == 0:
+        allowed_types = what_to_see
+    else:
+        allowed_types = list(set(allowed_types) & set(what_to_see))
+    print(allowed_types, hotel)
+    if isinstance(hotel, City):
+        start_points_candidate = Restaurant.objects.filter(city=hotel).filter(~Q(oid__in=disallowed_rests))
+    else:
+        start_points_candidate = NearestRestaurantToHotel.objects.filter(hotel=hotel).first().restaurants.filter(~Q(oid__in=disallowed_rests))
+    
+    if len(start_points_candidate.filter(type__in=where_eat)):
+        start_points_candidate = start_points_candidate.filter(type__in=where_eat)
+
+    start_point = start_points_candidate[0]
+    disallowed_rests.append(start_point.oid)
+    
+    candidates =  NearestEventToRestaurant.objects.get(restaurant=start_point).events.all().filter(type__in=allowed_types)
+    
+    points = [start_point]
+
+    if isinstance(hotel, Hotel):
+        path = [
+            generate_hotel(hotel),
+            generate_route(start_point, hotel, avg_velocity), 
+            generate_restaurant(start_point)
+        ]
+    else:
+        path = [
+            generate_restaurant(start_point)
+        ]
 
     start_time = datetime.combine(datetime.now(), time(hour=10))
 
@@ -537,32 +630,53 @@ def generate_path(user: User, disallowed_points: Iterable[BasePoint], hotel: Hot
 
     while start_time.hour < 22 and start_time.day == datetime.now().day:
         if (start_time.hour > 14 and how_many_eat == 1) or (start_time.hour > 20 and how_many_eat == 2):
-            point = NearestRestaurantToEvent.objects.filter(event=points[-1]).first().restaurants.filter(~Q(oid__in=disallowed_rests))[0]
-            disallowed_rests.append(point.oid)
-            points.append(point)
-            # Переделать - сделать еще один прекалк на рестораны с точками
-            candidates = NearestEventToRestaurant.objects.get(restaurant=point).events.all().filter(type__in=allowed_types)
-            if len(candidates) < 10:
-                candidates = NearestEventToRestaurant.objects.get(restaurant=point).events.all()
-
-            
-            path.append(generate_restaurant(points[-1]))
-            start_time += timedelta(seconds=path[-1]['time'])
-            how_many_eat += 1
-            continue
+            print(points, start_time)
+            try:
+                point_candidates = NearestRestaurantToEvent.objects.filter(event=points[-1]).first().restaurants.filter(~Q(oid__in=disallowed_rests))
+                if len(point_candidates.filter(type__in=where_eat)):
+                    point_candidates = point_candidates.filter(type__in=where_eat)
+                point = point_candidates[0]
+                
+                disallowed_rests.append(point.oid)
+                points.append(point)
+                
+                candidates = NearestEventToRestaurant.objects.get(restaurant=point).events.all().filter(type__in=allowed_types)
+                if len(candidates) < 2:
+                    candidates = NearestEventToRestaurant.objects.get(restaurant=point).events.all()
+                
+                path.append(generate_restaurant(points[-1]))
+                start_time += timedelta(seconds=path[-1]['time'])
+                how_many_eat += 1
+                continue
+            except:
+                return points, path, disallowed_rests
+ 
 
         if start_time.hour > 17:
-            allowed_types = ['play', 'concert', 'movie']
+            allowed_types = [
+                'play', 
+                'concert', 
+                'movie', 
+                'shop', 
+                'gallery', 
+                'theme_park', 
+                'viewpoint'
+            ]
+            if len(set(allowed_types) & set(what_to_see)) == 0:
+                allowed_types = what_to_see
+            else:
+                allowed_types = list(set(allowed_types) & set(what_to_see))
+
 
         if candidates is None:
             candidates = NearestEvent.objects.get(event=points[-1]).nearest.filter(type__in=allowed_types)
-            if len(candidates) < 10:
+            if len(candidates) < 2:
                 candidates = NearestEvent.objects.get(event=points[-1]).nearest.all()
 
         try:
             points.append(get_nearest_favorite(candidates, user, points[-1], points + disallowed_points))
             
-        except AttributeError:
+        except:
             points.append(get_nearest_favorite(candidates, user, points[-1], points))
 
         transition_route = generate_route(points[-1], points[-2], avg_velocity)
@@ -574,15 +688,6 @@ def generate_path(user: User, disallowed_points: Iterable[BasePoint], hotel: Hot
         path.extend([transition_route, point_route])
         candidates = None
     return points, path, disallowed_rests
-
-
-def calculate_distance(sample1: Event, samples: Iterable[Event], model: AnnoyIndex, rev_mapping):
-    metrics = []
-
-    for sample in samples:
-        metrics.append(model.get_distance(rev_mapping[sample1.oid], rev_mapping[sample.oid]))
-    
-    return sum(metrics) / len(metrics)
 
 
 def calculate_distance(
@@ -627,11 +732,6 @@ def get_onboarding_hotels(stars=Iterable[int]):
 
 
 def generate_points_path(user: User, points: Iterable[Event], velocity=3.0):
-    """
-    Дописать
-    1) генерить маршруты от многих точек (не только по 2) (salesman problem)
-    2) Если в маршруте до 7 точек - добавлять похожие пока не станет 7 точек
-    """
     if len(points) < 7:
         candidates = NearestEvent.objects.get(event=points[0]).nearest.all()
         points.extend(list(get_nearest_favorite(candidates, user, points[0], [], velocity, 7-len(points))))
@@ -662,4 +762,115 @@ def generate_points_path(user: User, points: Iterable[Event], velocity=3.0):
         ])
         visited_points.append(pt)
 
+    return res
+
+
+def flat_list(lst):
+    res = []
+    for i in lst:
+        res.extend(i)
+    return res
+
+
+def range_candidates(candidates, user, favorite_events):
+    model_mappings = {
+        'attraction': [attracion_model, rev_attraction_mapping],
+        'museum': [mus_model, rev_mus_mapping],
+        'movie': [cinema_model, rev_cinema_mapping],
+        'concert': [concert_model, rev_concert_mapping],
+        'plays': [plays_model, rev_plays_mapping]
+    }
+    
+    if candidates[0].type in ['attraction', 'museum', 'movie', 'concert', 'plays']:
+        candidates = sorted(
+            candidates,
+            key=lambda cand: calculate_mean_metric(
+                favorite_events, 
+                cand,
+                *model_mappings[cand.type]
+            )
+        )
+        return candidates[0:10]
+    return sample(candidates, 10)
+
+
+def get_personal_recomendations(user):
+    up, _ = UserPreferences.objects.get_or_create(user=user)
+    candidates_generate_strategy = {
+        'plays': [lambda pref: flat_list(
+            list(
+                map(
+                    lambda cand: nearest_plays(
+                        cand, 30
+                    ),
+                    pref.preffered_plays.all()
+                )
+            ), 
+        ), lambda pref: pref.preffered_plays.all()],
+        'movie': [lambda pref: flat_list(
+            list(
+                map(
+                    lambda cand: nearest_movie(
+                        cand, 30
+                    ),
+                    pref.preffered_movies.all()
+                )
+            ), 
+        ), lambda pref: pref.preffered_movies.all()],
+        'concert': [lambda pref: flat_list(
+            list(
+                map(
+                    lambda cand: nearest_concert(
+                        cand, 30
+                    ),
+                    pref.preferred_concerts.all()
+                )
+            ), 
+        ), lambda pref: pref.preferred_concerts.all()],
+        'attractions': [lambda pref: flat_list(
+            list(
+                map(
+                    lambda cand: nearest_attraction(
+                        cand, 30
+                    ),
+                    pref.prefferred_attractions.all()
+                )
+            ),
+        ), lambda pref: pref.prefferred_attractions.all()],
+        'museum': [lambda pref: flat_list(
+            list(
+                map(
+                    lambda cand: nearest_mus(
+                        cand, 30
+                    ),
+                    pref.prefferred_museums.all()
+                )
+            ),
+        ), lambda pref: pref.prefferred_museums.all()],
+        'shop': [lambda pref: sample(list(Event.objects.filter(type='shop')), 10), lambda x: []],
+        'gallery': [lambda pref: sample(list(Event.objects.filter(type='gallery')), 10), lambda x: []],
+        'theme_park': [lambda pref: sample(list(Event.objects.filter(type='theme_park')), 10), lambda x: []],
+        'viewpoint': [lambda pref: sample(list(Event.objects.filter(type='viewpoint')), 10), lambda x: []],
+        'zoo': [lambda pref: sample(list(Event.objects.filter(type='zoo')), 10), lambda x: []],
+    }
+
+    res = []
+    for category_candidate in up.preferred_categories:
+        candidates = candidates_generate_strategy[category_candidate][0](up)
+        ranged = range_candidates(
+            candidates, 
+            user, 
+            candidates_generate_strategy[category_candidate][1](up)
+        )
+        res.append(
+            {
+                'category': category_candidate,
+                'events': list(
+                    map(
+                        lambda x: ObjectRouteSerializer(x).data,
+                        ranged
+                    )
+                )
+            }
+        )
     return res

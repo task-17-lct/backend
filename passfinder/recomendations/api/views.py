@@ -49,32 +49,13 @@ class PersonalRecommendation(viewsets.GenericViewSet):
     model = Event
     queryset = Event.objects.all()
 
-    @action(methods=['GET'], detail=False)
-    def plays(self, request, *args, **kwargs):
-        recs = get_personal_plays_recommendation(request.user)
-        ans = []
-        for rec in recs:
-            ans.append(EventSerializer(rec[1]).data)
-        return Response(ans, 200)
-    
 
-    @action(methods=['GET'], detail=False)
-    def concerts(self, request, *args, **kwargs):
-        recs = get_personal_concerts_recommendation(request.user)
-        ans = []
-        for rec in recs:
-            ans.append(EventSerializer(rec[1]).data)
-        return Response(ans, 200)
-
-
-    @action(methods=['GET'], detail=False)
-    def movies(self, request, *args, **kwargs):
-        recs = get_personal_movies_recommendation(request.user)
-        ans = []
-        for rec in recs:
-            ans.append(EventSerializer(rec[1]).data)
-        return Response(ans, 200)
-
+    @action(methods=['GET'], detail=False, serializer_class=SelfRecomendationSerializer)
+    def recommendations(self, request,  *args, **kwargs):
+        return Response(
+            data=get_personal_recomendations(request.user),
+            status=200
+        )
     
     @action(methods=['GET'], detail=True)
     def get_nearest_user_distance(self, request, pk, *args, **kwargs):
@@ -165,4 +146,18 @@ class OnboardingViewset(viewsets.GenericViewSet):
         
         pref.save()
         
+        return Response(status=200)
+    
+    @action(methods=['POST'], detail=False, serializer_class=StarSelectionSerializer)
+    def set_hotel_stars(self, request, *args, **kwargs):
+        up, _ = UserPreferences.objects.get_or_create(user=request.user)
+        up.preferred_stars = request.data['stars']
+        up.save()
+        return Response(status=200)
+    
+    @action(methods=['POST'], detail=False, serializer_class=CategorySelectionSerializer)
+    def set_categories(self, request, *args, **kwargs):
+        up, _ = UserPreferences.objects.get_or_create(user=request.user)
+        up.preferred_categories = request.data['categories']
+        up.save()
         return Response(status=200)
