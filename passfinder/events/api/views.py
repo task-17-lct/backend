@@ -80,7 +80,7 @@ class BuildRouteApiView(GenericAPIView):
         if city_id:
             region = get_object_or_404(City, oid=city_id)
         else:
-            region = choice(City.objects.annotate(points_count=Count('points')).filter(title__in=city_in_hotels).filter(points_count__gt=300))
+            region = choice(City.objects.annotate(points_count=Count('points')).filter(title__in=city_in_hotels).filter(points_count__gt=400))
         if not start_date and end_date:
             tour_length = choice([timedelta(days=i) for i in range(1, 4)])
             start_date = end_date - tour_length

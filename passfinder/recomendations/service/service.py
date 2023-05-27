@@ -429,13 +429,13 @@ def generate_route(point1: BasePoint, point2: BasePoint, velocity: float):
     time = time_func(distance, velocity)
 
 
-def time_func(km_distance: float):
-    return timedelta(minutes=(km_distance) / (4.0 / 60))
+def time_func(km_distance: float, velocity):
+    return timedelta(minutes=(km_distance) / (velocity / 60))
 
 
-def generate_route(point1: BasePoint, point2: BasePoint):
+def generate_route(point1: BasePoint, point2: BasePoint, velocity):
     distance = dist_func(point1, point2)
-    time = time_func(distance)
+    time = time_func(distance, velocity)
     return {
         "type": "transition",
         "distance": distance,
