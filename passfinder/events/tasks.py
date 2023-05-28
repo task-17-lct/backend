@@ -61,8 +61,6 @@ def check_temperature():
                 "user": route.user,
                 "route": route,
                 "alerts": alerts,
-                # TODO: change to frontend link
-                "link": f"http://127.0.0.1:8000/path/{route.id}/change",
             }
 
             email_plaintext_message = render_to_string("weather_alert.txt", context)

@@ -1,7 +1,15 @@
 # Pass Finder
-
+[Логика проекта и структура данных](https://www.figma.com/file/2De9jBDhNbFg8ScjKGmorY/Untitled?type=whiteboard&node-id=0%3A1&t=NGIe9sKMeVjNiK9j-1)
 
 ## Basic Commands
+
+### Load data
+be sure to create .env file in top directory(clone .env.template)
+
+    $ ./manage.py migrate
+    $ ./manage.py loaddata data.json
+
+data.json can be downloaded here: https://akarpov.ru/media/passfinder/data.json
 
 ### Runserver
 
@@ -30,11 +38,8 @@ This app comes with Celery.
 To run a celery worker:
 
 ``` bash
-cd passfinder
-celery -A config.celery_app worker -l info
+celery -A config.celery_app worker -B -l warning
 ```
-
-Please note: For Celery's import magic to work, it is important *where* the celery commands are run. If you are in the same folder with *manage.py*, you should be right.
 
 
 made with [cookiecutter-django](https://github.com/Alexander-D-Karpov/cookiecutter-django)

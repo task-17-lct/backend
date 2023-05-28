@@ -1,0 +1,16 @@
+# General
+# CHANGE ON REAL SERVER
+# ------------------------------------------------------------------------------
+USE_DOCKER=yes
+DJANGO_READ_DOT_ENV_FILE=no
+# Redis
+# ------------------------------------------------------------------------------
+REDIS_URL=redis://redis:6379/0
+CELERY_BROKER_URL=redis://localhost:6379/0
+
+# Celery
+# ------------------------------------------------------------------------------
+
+# Flower
+CELERY_FLOWER_USER=debug
+CELERY_FLOWER_PASSWORD=debug

@@ -1,4 +1,4 @@
-orconfig
+.editorconfig
 .gitattributes
 .github
 .gitignore
@@ -6,6 +6,7 @@ orconfig
 .idea
 .pre-commit-config.yaml
 .readthedocs.yml
-.travis.yml
 venv
 data
+data.json
+parsers
