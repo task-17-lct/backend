@@ -59,6 +59,7 @@ class PersonalRecommendation(viewsets.GenericViewSet):
 
     @action(methods=["GET"], detail=False, serializer_class=SelfRecomendationSerializer)
     def recommendations(self, request, *args, **kwargs):
+        print("fuck")
         return Response(data=get_personal_recomendations(request.user), status=200)
 
     @action(methods=["GET"], detail=True)
@@ -111,7 +112,7 @@ class PersonalRecommendation(viewsets.GenericViewSet):
         data =serializer.data
         
         what_to_see = data["what_to_see"]
-        if what_to_see is None:
+        if what_to_see is None or not len(what_to_see):
             what_to_see = [
                 "attractions",
                 "museum",

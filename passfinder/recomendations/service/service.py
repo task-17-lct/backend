@@ -441,7 +441,9 @@ def get_nearest_favorite(
     )
 
     if top_k == 1:
-        return sorted_events[0]
+        try:
+            return sorted_events[0]
+        except: return None
 
     return sorted_events[0:top_k]
 
@@ -607,11 +609,25 @@ def generate_path(
         "other",
         "viewpoint",
     ]
+    if not len(what_to_see):
+        what_to_see=[
+        "attractions",
+        "museum",
+        "movie",
+        "concert",
+        "artwork",
+        "plays",
+        "shop",
+        "gallery",
+        "theme_park",
+        "viewpoint",
+        "zoo",
+        ]
     if len(set(allowed_types) & set(what_to_see)) == 0:
         allowed_types = what_to_see
     else:
         allowed_types = list(set(allowed_types) & set(what_to_see))
-    print(allowed_types, hotel)
+    print(allowed_types)
     if isinstance(hotel, City):
         start_points_candidate = Restaurant.objects.filter(city=hotel).filter(
             ~Q(oid__in=disallowed_rests)
@@ -708,15 +724,22 @@ def generate_path(
                 candidates = NearestEvent.objects.get(event=points[-1]).nearest.all()
 
         try:
-            points.append(
-                get_nearest_favorite(
+            fav = get_nearest_favorite(
                     candidates, user, points[-1], points + disallowed_points
                 )
+            if fav is None:
+                raise ValueError()
+            points.append(
+                fav
             )
 
         except:
-            points.append(get_nearest_favorite(candidates, user, points[-1], points))
-
+            fav = get_nearest_favorite(candidates, user, points[-1], points)
+            if fav is None:
+                return points, path, disallowed_rests
+            
+            points.append(fav)
+        print(points, "points")
         transition_route = generate_route(points[-1], points[-2], avg_velocity)
 
         start_time += timedelta(seconds=transition_route["time"])
@@ -851,55 +874,55 @@ candidates_generate_strategy = {
             lambda pref: flat_list(
                 list(
                     map(
-                        lambda cand: nearest_plays(cand, 30), pref.preffered_plays.all()
+                        lambda cand: nearest_plays(cand, 10), pref.preffered_plays.all()[0:5]
                     )
                 ),
             ),
-            lambda pref: pref.preffered_plays.all(),
+            lambda pref: pref.preffered_plays.all()[0:10],
         ],
         "movie": [
             lambda pref: flat_list(
                 list(
                     map(
                         lambda cand: nearest_movie(cand, 30),
-                        pref.preffered_movies.all(),
+                        pref.preffered_movies.all()[0:4],
                     )
                 ),
             ),
-            lambda pref: pref.preffered_movies.all(),
+            lambda pref: pref.preffered_movies.all()[0:10],
         ],
         "concert": [
             lambda pref: flat_list(
                 list(
                     map(
                         lambda cand: nearest_concert(cand, 30),
-                        pref.preferred_concerts.all(),
+                        pref.preferred_concerts.all()[0:4],
                     )
                 ),
             ),
-            lambda pref: pref.preferred_concerts.all(),
+            lambda pref: pref.preferred_concerts.all()[0:4],
         ],
         "attractions": [
             lambda pref: flat_list(
                 list(
                     map(
-                        lambda cand: nearest_attraction(cand, 30),
-                        pref.prefferred_attractions.all(),
+                        lambda cand: nearest_attraction(cand, 10),
+                        pref.prefferred_attractions.all()[0:4],
                     )
                 ),
             ),
-            lambda pref: pref.prefferred_attractions.all(),
+            lambda pref: pref.prefferred_attractions.all()[0:4],
         ],
         "museum": [
             lambda pref: flat_list(
                 list(
                     map(
-                        lambda cand: nearest_mus(cand, 30),
-                        pref.prefferred_museums.all(),
+                        lambda cand: nearest_mus(cand, 10),
+                        pref.prefferred_museums.all()[0:4],
                     )
                 ),
             ),
-            lambda pref: pref.prefferred_museums.all(),
+            lambda pref: pref.prefferred_museums.all()[0:10],
         ],
         "shop": [
             lambda pref: sample(list(Event.objects.filter(type="shop")), 10),
@@ -934,7 +957,9 @@ def get_personal_recomendations(user):
 
     res = []
     for category_candidate in up.preferred_categories:
+        print(category_candidate)
         candidates = candidates_generate_strategy[category_candidate][0](up)
+        print(len(candidates))
         ranged = range_candidates(
             candidates, user, candidates_generate_strategy[category_candidate][1](up)
         )
@@ -973,4 +998,7 @@ def get_events(
     )
 
 
-def remap_points(date: datetime.date, region: City, )
+def remap_points(date: datetime.date, region: City, point: Event):
+    allowed_types = [
+
+    ]

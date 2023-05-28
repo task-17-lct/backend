@@ -172,7 +172,7 @@ class InputRouteSerializer(serializers.Serializer):
 class ListUserRouteSerializer(serializers.ModelSerializer):
     class Meta:
         model = UserRoute
-        fields = ["id", "name", "description", "created"]
+        fields = ["id", "created"]
 
 
 class UserRouteDateSerializer(serializers.ModelSerializer):
