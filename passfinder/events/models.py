@@ -238,6 +238,8 @@ class Restaurant(BasePoint):
 
 
 class UserRoute(models.Model):
+    title = models.CharField(max_length=250)
+    description = models.TextField()
     user = models.ForeignKey(
         "users.User", related_name="routes", on_delete=models.CASCADE
     )

@@ -8,3 +8,4 @@ orconfig
 .readthedocs.yml
 .travis.yml
 venv
+data
