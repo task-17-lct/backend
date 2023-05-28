@@ -6,6 +6,8 @@ from rest_framework.mixins import ListModelMixin, RetrieveModelMixin, UpdateMode
 from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet
 
+from passfinder.recomendations.models import UserPreferences
+
 from .serializers import (
     UserSerializer,
     UserRegisterSerializer,
@@ -54,6 +56,5 @@ class ListUserFavoritePointsApiView(generics.ListAPIView):
     serializer_class = PointSerializer
 
     def get_queryset(self):
-        return BasePoint.objects.filter(
-            user_preferences__user=self.request.user, user_preferences__type="favorite"
-        )
+        up, _ = UserPreferences.objects.get_or_create(user=self.request.user)
+        return up.get_points()

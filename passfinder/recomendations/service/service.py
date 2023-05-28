@@ -367,8 +367,13 @@ def calculate_mean_metric(
     except:
         return 10
     for fav in favorite_events:
-        dists.append(model.get_distance(rev_mapping[fav.oid], target_event_idx))
-    return sum(dists) / len(dists)
+        try:
+            dists.append(model.get_distance(rev_mapping[fav.oid], target_event_idx))
+        except: pass
+    try:
+        return sum(dists) / len(dists)
+    except ZeroDivisionError:
+        return 10
 
 
 def calculate_favorite_metric(event: Event, user: User):
@@ -720,6 +725,14 @@ def generate_path(
         start_time += timedelta(seconds=point_route["time"])
         path.extend([transition_route, point_route])
         candidates = None
+
+        #  = "Сгенерируй описание туристического маршрута, проходящего через следующие точки:\n"
+        
+        # prompt += 'Отель: {hotel.name}\n'
+        # for i in points:
+        #     prompt += f'Название: {i.title}\nОписание: {i.description}\nТип: {i.type}\n\n'
+        # print(promptprompt)
+
     return points, path, disallowed_rests
 
 
@@ -814,21 +827,26 @@ def range_candidates(candidates, user, favorite_events):
         "concert": [concert_model, rev_concert_mapping],
         "plays": [plays_model, rev_plays_mapping],
     }
+    try:
+        if candidates[0].type in ["attraction", "museum", "movie", "concert", "plays"]:
+            candidates = sorted(
+                map(
+                lambda x: [
+                        calculate_mean_metric(
+                            favorite_events, x, *model_mappings[x.type]
+                        ), x
+                    ],
+                    candidates
+                ),
+                key=lambda x: x[0],
+            )
+            return candidates[0:10]
+        return sample(candidates, 10)
+    except: return []
 
-    if candidates[0].type in ["attraction", "museum", "movie", "concert", "plays"]:
-        candidates = sorted(
-            candidates,
-            key=lambda cand: calculate_mean_metric(
-                favorite_events, cand, *model_mappings[cand.type]
-            ),
-        )
-        return candidates[0:10]
-    return sample(candidates, 10)
 
 
-def get_personal_recomendations(user):
-    up, _ = UserPreferences.objects.get_or_create(user=user)
-    candidates_generate_strategy = {
+candidates_generate_strategy = {
         "plays": [
             lambda pref: flat_list(
                 list(
@@ -903,7 +921,16 @@ def get_personal_recomendations(user):
             lambda pref: sample(list(Event.objects.filter(type="zoo")), 10),
             lambda x: [],
         ],
+        "artwork": [
+            lambda pref: sample(list(Event.objects.filter(type="zoo")), 10),
+            lambda x: [],
+        ],
     }
+
+
+
+def get_personal_recomendations(user):
+    up, _ = UserPreferences.objects.get_or_create(user=user)
 
     res = []
     for category_candidate in up.preferred_categories:
@@ -914,7 +941,36 @@ def get_personal_recomendations(user):
         res.append(
             {
                 "category": category_candidate,
-                "events": list(map(lambda x: ObjectRouteSerializer(x).data, ranged)),
+                "events": list(map(lambda x: ObjectRouteSerializer(x[1]).data, ranged)),
             }
         )
     return res
+
+
+def get_events(
+    user: User,
+    allowed_regions: Iterable[City],
+    what_to_see: Iterable[str]
+):
+    up, _ = UserPreferences.objects.get_or_create(user=user)
+    events = Event.objects.filter(type__in=what_to_see, city__in=allowed_regions)
+    ranged = []
+    for category in what_to_see:
+        candidates = events.filter(type=category)
+        ranged.extend(
+            range_candidates(
+                candidates,
+                user,
+                candidates_generate_strategy[category][1](up)
+            )
+        )
+    ranged.sort(key=lambda x: x[0])
+    return list(
+        map(
+            lambda x: ObjectRouteSerializer(x[1]).data, 
+            ranged[0:10]
+        )
+    )
+
+
+def remap_points(date: datetime.date, region: City, )

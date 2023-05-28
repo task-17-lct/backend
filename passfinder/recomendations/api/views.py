@@ -13,6 +13,8 @@ from ..service.service import *
 from django.views.decorators.csrf import csrf_exempt
 from django.db.models import Count
 from random import sample
+from passfinder.events.api.serializers import RouteInputSerializer
+from passfinder.events.api.consts import city_in_hotels
 
 
 class TinderView(viewsets.GenericViewSet):
@@ -93,6 +95,7 @@ class PersonalRecommendation(viewsets.GenericViewSet):
     @action(methods=["POST"], detail=False, serializer_class=DailySelectionSerializer)
     def generate_daily_selection(self, request, *args, **kwargs):
         points = []
+        print(request.data['nodes'])
         for point in request.data["nodes"]:
             if point["action"] == "right":
                 points.append(Event.objects.get(oid=point["oid"]))
@@ -100,6 +103,40 @@ class PersonalRecommendation(viewsets.GenericViewSet):
         path = generate_points_path(request.user, points, 3)
 
         return Response(data={"path": path})
+    
+    @action(methods=['POST'], detail=False, serializer_class=RouteInputSerializer)
+    def build_events(self, request, *args, **kwargs):
+        serializer = RouteInputSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data =serializer.data
+        
+        what_to_see = data["what_to_see"]
+        if what_to_see is None:
+            what_to_see = [
+                "attractions",
+                "museum",
+                "movie",
+                "concert",
+                "artwork",
+                "plays",
+                "shop",
+                "gallery",
+                "theme_park",
+                "viewpoint",
+                "zoo",
+            ]
+        city_id = data["city"]
+        allowed_regions = []
+        if city_id:
+            allowed_regions = [City.objects.get(oid=city_id)]
+        else:
+            allowed_regions = sample(
+                list(City.objects.annotate(points_count=Count("points"))
+                    .filter(title__in=city_in_hotels)
+                    .filter(points_count__gt=400)), 5)
+        return Response(data=get_events(request.user, allowed_regions, what_to_see))
+
+
 
 
 class OnboardingViewset(viewsets.GenericViewSet):

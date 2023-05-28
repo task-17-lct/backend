@@ -10,9 +10,12 @@ from rest_framework.response import Response
 from drf_spectacular.utils import extend_schema
 from django.db.models import Count
 from random import choice
-from passfinder.recomendations.service.service import generate_tour
+from passfinder.recomendations.service.service import generate_tour, get_events
 from datetime import timedelta, datetime
 from .consts import *
+from passfinder.recomendations.models import UserPreferences
+from rest_framework.decorators import action
+from random import sample
 
 
 from passfinder.events.api.serializers import (
@@ -53,7 +56,8 @@ class BuildRouteApiView(GenericAPIView):
                     ),
                 }
             )
-        return Response(data=routes)
+        return Response(data=routes)        
+
 
     @extend_schema(
         request=RouteInputSerializer, responses={200: RouteSerializer(many=True)}
@@ -111,7 +115,7 @@ class BuildRouteApiView(GenericAPIView):
             hotel_stars = []
         res = []
 
-        for _ in range(5):
+        for _ in range(2):
             if city_id:
                 region = get_object_or_404(City, oid=city_id)
             else:
@@ -165,7 +169,7 @@ class ListCityApiView(ListAPIView):
     queryset = (
         City.objects.annotate(points_count=Count("points"))
         .filter(title__in=city_in_hotels)
-        .filter(points_count__gt=200)
+        .filter(points_count__gt=400)
         .order_by("title")
     )
 
@@ -178,17 +182,20 @@ class SaveRouteApiView(GenericAPIView):
         serializer.is_valid(raise_exception=True)
         data = serializer.data
         route = UserRoute.objects.create(user=self.request.user)
+        up, _ = UserPreferences.objects.get_or_create(user=request.user)
         for date in data["points"]:
             date_obj = UserRouteDate.objects.create(
                 date=parse_datetime(date["date"]).date(), route=route
             )
             for point in date["paths"]:
                 if point["type"] == "point":
+                    model_point = BasePoint.objects.get(oid=point["point"]["oid"])
                     UserRoutePoint.objects.create(
                         date=date_obj,
                         duration=point["time"],
-                        point=BasePoint.objects.get(oid=point["point"]["oid"]),
+                        point=model_point,
                     )
+                    up.add_point(model_point)
                 else:
                     UserRouteTransaction.objects.create(
                         date=date_obj,

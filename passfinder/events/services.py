@@ -13,9 +13,6 @@ def get_position_weather(lat: float, lon: float) -> list[(str, str)]:
 
     if response.status_code == 200:
         data = response.json()
-        days = []
-
-        for d in data["forecasts"]:
-            days.append((d["date"], d["parts"]["day_short"]["condition"]))
-        return days
-    return []
+        temp_feels = data["forecasts"][0]["parts"]["day"]["feels_like"]
+        weather = data["forecasts"][0]["parts"]["day_short"]["condition"]
+        return temp_feels, weather
