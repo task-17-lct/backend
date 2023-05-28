@@ -11,7 +11,6 @@ from passfinder.events.models import City, UserRoute
 from passfinder.events.services import get_position_weather
 
 weathers_labels = {
-    "drizzle": "морось",
     "light-rain": "небольшой дождь",
     "rain": "дождь",
     "moderate-rain": "дождь",
@@ -34,26 +33,29 @@ def check_temperature():
     for route in UserRoute.objects.filter(
         dates__date__gte=now().date(), dates__date__lte=now().date() + timedelta(days=3)
     ):
-        points = route.dates.objects.get(date=now().date()).points.all()
-        cities = points.values_list("city_id").distinct()
         alerts = []
-        for city in cities:
-            if city:
-                city = City.objects.get(oid=city)
-                if city in cities_temp:
-                    weather_conditions = cities_temp[city]
-                else:
-                    weather_conditions = get_position_weather(city.lat, city.lon)
-                    weather_conditions = [
-                        (parse_date(x[0]), x[1]) for x in weather_conditions
-                    ]
-                    cities_temp[city] = weather_conditions
-
-                for date, weather in weather_conditions:
-                    if weather in weathers_labels:
-                        alerts.append(
-                            f"В городе {city.title} {date.strftime('%d.%m.%Y')} предстоит {weathers_labels[weather]}"
+        for i in range(3):
+            date = now().date() + timedelta(days=i)
+            points = route.dates.objects.get(date=date).points.all()
+            cities = points.values_list("city_id").distinct()
+            for city in cities:
+                if city:
+                    city = City.objects.get(oid=city)
+                    if city in cities_temp:
+                        weather_conditions = cities_temp[city]
+                    else:
+                        weather_conditions = get_position_weather(city.lat, city.lon)
+                        weather_conditions = dict(
+                            [(parse_date(x[0]), x[1]) for x in weather_conditions]
                         )
+                        cities_temp[city] = weather_conditions
+
+                    if date in weather_conditions:
+                        weather = weather_conditions[date]
+                        if weather in weathers_labels:
+                            alerts.append(
+                                f"В городе {city.title} {date.strftime('%d.%m.%Y')} предстоит {weathers_labels[weather]}"
+                            )
         if alerts:
             context = {
                 "user": route.user,
